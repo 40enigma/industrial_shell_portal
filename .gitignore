@@ -1,0 +1,99 @@
+# ===========================================================================
+# QADRI GROUP — Industrial Shell Portal .gitignore
+# ===========================================================================
+
+# --- Python Bytecode & Cache ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# --- Virtual Environments ---
+venv/
+.venv/
+env/
+.env/
+ENV/
+env.bak/
+venv.bak/
+
+# --- SQLite Databases & Runtime Storage ---
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+data/*.db
+data/industrial_shells.db
+
+# --- Raw Data Archives & Extracted Files ---
+data/raw/*/extracted_*
+data/raw/*/*.zip
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# --- Intermediate Data Artifacts ---
+data/processed/*.json
+data/processed/*.csv
+
+# --- Heavy Raw Source Datasets (Excel Workbooks) ---
+*.xlsx
+*.xls
+!requirements.txt
+
+# --- Operating System & Desktop Files ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# --- IDEs & Code Editors ---
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# --- Antigravity Agent & Brain Logs ---
+.gemini/
+.agents/
+scratch/
+*.log
+logs/
+
+# --- Environment Config & Secrets ---
+.env
+.env.local
+.env.*.local
+*.secret

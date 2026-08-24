@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="QADRI GROUP — Industrial Shell Data Retrieval, Casting Stock Envelope & Quality Intelligence Portal — Dimensional search, casting stock calculator, real-time 2D SVG cross-section visualizer, metallurgy & defect analytics.">
+    <title>QADRI GROUP — Foundry Shell &amp; Casting Intelligence Portal</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/static/qadri_logo.svg">
+
+    <!-- OpenGraph Meta -->
+    <meta property="og:title" content="QADRI GROUP — Foundry Shell &amp; Casting Intelligence">
+    <meta property="og:description" content="Qadri Group foundry shell retrieval, casting stock envelope calculator, defect analytics, and multi-year ingestion portal.">
+    <meta property="og:type" content="website">
+    <meta name="theme-color" content="#080c14">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-grid"></div>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+
+    <!-- Header & Navigation -->
+    <header class="header" id="main-header">
+        <div class="header-inner">
+            <div class="logo-group">
+                <a href="/" style="text-decoration:none; display:flex; align-items:center; gap:12px;">
+                    <img src="/static/qadri_logo.svg" alt="Qadri Group Logo" class="logo-icon-img">
+                    <div>
+                        <h1 class="logo-title">QADRI GROUP</h1>
+                        <p class="logo-subtitle">Foundry Shell &amp; Casting Intelligence</p>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Theme Toggle Button -->
+            <button type="button" class="theme-toggle-btn" id="theme-toggle" title="Toggle Light/Dark Mode" aria-label="Toggle theme">
+                <svg class="theme-icon-sun" width="18" height="18" viewBox="0 0 20 20" fill="none">
+                    <circle cx="10" cy="10" r="4" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="M10 2V4M10 16V18M2 10H4M16 10H18M4.93 4.93L6.34 6.34M13.66 13.66L15.07 15.07M4.93 15.07L6.34 13.66M13.66 6.34L15.07 4.93" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+                <svg class="theme-icon-moon" width="18" height="18" viewBox="0 0 20 20" fill="none" style="display:none;">
+                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.003 8.003 0 1010.586 10.586z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+
+            <!-- Multi-Page Navigation Bar -->
+            <nav class="nav-link-group" id="main-nav-links">
+                <a href="/" class="nav-link-btn active">
+                    <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
+                        <circle cx="8.5" cy="8.5" r="6" stroke="currentColor" stroke-width="2"/>
+                        <path d="M13 13L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    Shell Search & Calculator
+                </a>
+                <a href="/job-lookup" class="nav-link-btn">
+                    <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
+                        <rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/>
+                        <path d="M7 8H13M7 12H11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                    Job Dossier Center
+                </a>
+                <a href="/quality" class="nav-link-btn">
+                    <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
+                        <path d="M3 17V10M8 17V4M13 17V13M18 17V7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    Quality Intelligence
+                </a>
+                <a href="/ingestion" class="nav-link-btn">
+                    <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
+                        <path d="M4 14V16H16V14M10 3V12M10 3L6 7M10 3L14 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Archive Ingestion
+                </a>
+            </nav>
+
+            <div class="header-stats" id="header-stats">
+                <div class="stat-chip" id="stat-shells">
+                    <span class="stat-value">—</span>
+                    <span class="stat-label">Shells</span>
+                </div>
+                <div class="stat-chip" id="stat-casting">
+                    <span class="stat-value highlight-cyan">—</span>
+                    <span class="stat-label">Casting Logs</span>
+                </div>
+                <div class="stat-chip" id="stat-docs">
+                    <span class="stat-value">—</span>
+                    <span class="stat-label">Total Docs</span>
+                </div>
+                <div class="stat-chip" id="stat-linked">
+                    <span class="stat-value">—</span>
+                    <span class="stat-label">QDRs</span>
+                </div>
+                <div class="stat-chip" id="stat-lots">
+                    <span class="stat-value">—</span>
+                    <span class="stat-label">Lots</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Tabs Container -->
+    <main class="main-container">
+
+        <!-- ============================================================ -->
+        <!-- TAB 1: SHELL SEARCH & MACHINING ENVELOPE CALCULATOR         -->
+        <!-- ============================================================ -->
+        <section class="tab-content active" id="tab-search">
+            <div class="search-layout">
+                <!-- Search Controls Panel -->
+                <div class="search-panel" id="search-panel">
+                    <!-- Dimension Mode Selector -->
+                    <div class="mode-switch-wrapper">
+                        <label class="input-label">Dimensional Evaluation Mode</label>
+                        <div class="segmented-control mode-grid-4" id="dimension-mode-selector">
+                            <button type="button" class="segment-btn active" data-mode="finish">
+                                <span class="segment-dot"></span> Finish Size
+                            </button>
+                            <button type="button" class="segment-btn" data-mode="casted">
+                                <span class="segment-dot"></span> Casted Size
+                            </button>
+                            <button type="button" class="segment-btn" data-mode="both">
+                                <span class="segment-dot"></span> Auto Match
+                            </button>
+                            <button type="button" class="segment-btn highlight" data-mode="envelope">
+                                <span class="segment-dot"></span> Stock Envelope
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="search-panel-header">
+                        <h2 class="section-title">
+                            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" class="section-icon">
+                                <circle cx="8.5" cy="8.5" r="6" stroke="currentColor" stroke-width="2"/>
+                                <path d="M13 13L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                            <span id="dimension-panel-title">Target Finish Dimensions</span>
+                        </h2>
+                        <button class="btn btn-ghost" id="btn-clear" title="Reset all search parameters">
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                                <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                            Reset
+                        </button>
+                    </div>
+
+                    <!-- Primary Dimensions Grid -->
+                    <div class="search-grid">
+                        <div class="input-group">
+                            <label class="input-label" for="input-od">Outer Dia (OD) <span class="input-unit">mm</span></label>
+                            <input type="number" id="input-od" class="input-field" placeholder="e.g. 1120" step="0.1" min="0" autocomplete="off">
+                            <div class="input-hint">Outer Diameter</div>
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label" for="input-id">Inner Dia (ID) <span class="input-unit">mm</span></label>
+                            <input type="number" id="input-id" class="input-field" placeholder="e.g. 625" step="0.1" min="0" autocomplete="off">
+                            <div class="input-hint">Inner Bore Diameter</div>
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label" for="input-length">Length (L) <span class="input-unit">mm</span></label>
+                            <input type="number" id="input-length" class="input-field" placeholder="e.g. 2424" step="0.1" min="0" autocomplete="off">
+                            <div class="input-hint">Barrel Shell Length</div>
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label" for="input-job">Job # <span class="input-unit">optional</span></label>
+                            <input type="text" id="input-job" class="input-field" placeholder="e.g. SE24-MAGZ" autocomplete="off">
+                            <div class="input-hint">Partial code match</div>
+                        </div>
+                    </div>
+
+                    <!-- Machining Envelope Allowances (Revealed in Envelope Mode) -->
+                    <div class="envelope-allowances-box" id="envelope-allowances-box" style="display: none;">
+                        <div class="allowance-title">
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                                <path d="M2 3H14V13H2V3Z" stroke="currentColor" stroke-width="1.5"/>
+                                <path d="M5 3V13M11 3V13" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 2"/>
+                            </svg>
+                            Machining Stock Allowances
+                        </div>
+                        <div class="allowances-grid">
+                            <div class="input-group">
+                                <label class="input-label" for="input-od-allowance">OD Cut <span class="input-unit">mm/side</span></label>
+                                <input type="number" id="input-od-allowance" class="input-field" value="5.0" step="0.5" min="0">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label" for="input-id-allowance">ID Cut <span class="input-unit">mm/side</span></label>
+                                <input type="number" id="input-id-allowance" class="input-field" value="5.0" step="0.5" min="0">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label" for="input-face-allowance">Facing <span class="input-unit">mm/end</span></label>
+                                <input type="number" id="input-face-allowance" class="input-field" value="10.0" step="1" min="0">
+                            </div>
+                        </div>
+                        <div class="allowance-formula-hint">
+                            Envelope rule: Cast OD ≥ Target OD + 2×Cut | Cast ID ≤ Target ID - 2×Cut | Cast L ≥ Target L + 2×Face
+                        </div>
+                    </div>
+
+                    <!-- Tolerance Slider (for Proximity Modes) -->
+                    <div class="tolerance-row" id="tolerance-slider-row">
+                        <div class="tolerance-header">
+                            <label class="input-label" for="input-tolerance">Search Tolerance Margin</label>
+                            <span class="tolerance-value" id="tolerance-display">± 5.0 mm</span>
+                        </div>
+                        <input type="range" id="input-tolerance" class="tolerance-slider" min="0" max="50" step="0.5" value="5">
+                        <div class="tolerance-marks">
+                            <span>0 mm</span><span>10 mm</span><span>20 mm</span><span>30 mm</span><span>40 mm</span><span>50 mm</span>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Filters Toggle -->
+                    <div class="advanced-toggle-wrapper">
+                        <button type="button" class="btn-advanced-toggle" id="btn-toggle-advanced">
+                            <span class="adv-left">
+                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" class="adv-icon">
+                                    <path d="M2 4H14M4 8H12M6 12H10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                Advanced Metallurgy & Filters
+                            </span>
+                            <span class="adv-badge" id="adv-filter-badge" style="display:none;">0 active</span>
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" class="adv-chevron" id="adv-chevron">
+                                <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Collapsible Drawer -->
+                    <div class="advanced-drawer" id="advanced-drawer" style="display: none;">
+                        <div class="advanced-grid">
+                            <div class="input-group">
+                                <label class="input-label" for="input-wt">Wall Thickness <span class="input-unit">mm</span></label>
+                                <input type="number" id="input-wt" class="input-field" placeholder="e.g. 247.5" step="0.1" min="0">
+                                <div class="input-hint">(OD - ID) / 2</div>
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label" for="input-wt-tol">WT Tol <span class="input-unit">±mm</span></label>
+                                <input type="number" id="input-wt-tol" class="input-field" value="2.0" step="0.5" min="0">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label" for="select-material">Material Standard</label>
+                                <select id="select-material" class="input-field input-select">
+                                    <option value="">All Alloy Standards</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label" for="select-shell-type">Shell Type</label>
+                                <select id="select-shell-type" class="input-field input-select">
+                                    <option value="">All Casting Types</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label" for="input-min-weight">Min Weight <span class="input-unit">kg</span></label>
+                                <input type="number" id="input-min-weight" class="input-field" placeholder="e.g. 5000" step="500" min="0">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label" for="input-max-weight">Max Weight <span class="input-unit">kg</span></label>
+                                <input type="number" id="input-max-weight" class="input-field" placeholder="e.g. 20000" step="500" min="0">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label" for="select-lot">Lot Number</label>
+                                <select id="select-lot" class="input-field input-select">
+                                    <option value="">All Foundry Lots</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label" for="select-year">Manufacturing Year</label>
+                                <select id="select-year" class="input-field input-select">
+                                    <option value="">All Years</option>
+                                </select>
+                            </div>
+                            <div class="input-group full-width">
+                                <label class="input-label" for="input-global-query">Global Keyword Query</label>
+                                <input type="text" id="input-global-query" class="input-field" placeholder="Drawing #, IDM #, Customer, Part name, Shell name...">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Search Button -->
+                    <button class="btn btn-primary btn-search" id="btn-search">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                            <circle cx="7.5" cy="7.5" r="5.5" stroke="currentColor" stroke-width="2"/>
+                            <path d="M12 12L16 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        Evaluate Shells & Envelopes
+                    </button>
+                </div>
+
+                <!-- Results & Visualizer Section -->
+                <div class="results-section" id="results-section">
+                    <!-- Results Toolbar -->
+                    <div class="results-header" id="results-header" style="display: none;">
+                        <div class="results-meta">
+                            <h2 class="section-title">
+                                <svg width="18" height="18" viewBox="0 0 20 20" fill="none" class="section-icon">
+                                    <rect x="2" y="3" width="16" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                                    <path d="M2 7H18" stroke="currentColor" stroke-width="1.5"/>
+                                </svg>
+                                Matched Shell Inventory
+                            </h2>
+                            <span class="results-count" id="results-count">0 matches</span>
+                        </div>
+
+                        <!-- View Switcher & Actions -->
+                        <div class="results-actions">
+                            <!-- View Toggle (Card vs Table) -->
+                            <div class="view-toggle-group">
+                                <button type="button" class="view-btn active" id="btn-view-cards" title="Grid Card View">
+                                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                                        <rect x="2" y="2" width="5" height="5" rx="1" fill="currentColor"/>
+                                        <rect x="9" y="2" width="5" height="5" rx="1" fill="currentColor"/>
+                                        <rect x="2" y="9" width="5" height="5" rx="1" fill="currentColor"/>
+                                        <rect x="9" y="9" width="5" height="5" rx="1" fill="currentColor"/>
+                                    </svg>
+                                    Cards
+                                </button>
+                                <button type="button" class="view-btn" id="btn-view-table" title="Dense Engineering Table View">
+                                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                                        <path d="M2 3H14M2 7H14M2 11H14M2 15H14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                    </svg>
+                                    Table
+                                </button>
+                            </div>
+
+                            <!-- Sort Selector -->
+                            <div class="sort-selector-wrapper">
+                                <select id="select-sort-by" class="sort-select">
+                                    <option value="confidence">Sort: Confidence / Yield</option>
+                                    <option value="yield">Sort: Highest Yield %</option>
+                                    <option value="od">Sort: OD (Outer Dia)</option>
+                                    <option value="id">Sort: ID (Bore)</option>
+                                    <option value="length">Sort: Length</option>
+                                    <option value="wall_thickness">Sort: Wall Thickness</option>
+                                    <option value="weight">Sort: Weight</option>
+                                    <option value="lot">Sort: Lot #</option>
+                                </select>
+                                <button type="button" class="btn-sort-order" id="btn-sort-order" title="Toggle Ascending/Descending">
+                                    <span id="sort-order-icon">▼</span>
+                                </button>
+                            </div>
+
+                            <button class="btn btn-export" id="btn-export-csv" title="Export current search results to CSV">
+                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                                    <path d="M8 2V10M8 10L5 7M8 10L11 7M2 13H14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                Export CSV
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="results-query" id="results-query" style="display:none;"></div>
+
+                    <!-- States -->
+                    <div class="loading-state" id="loading-state" style="display: none;">
+                        <div class="loading-spinner"></div>
+                        <p>Querying foundry database and calculating stock envelopes...</p>
+                    </div>
+
+                    <div class="empty-state" id="empty-state">
+                        <div class="empty-icon">
+                            <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+                                <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+                                <circle cx="32" cy="32" r="16" stroke="currentColor" stroke-width="2" opacity="0.2"/>
+                                <circle cx="32" cy="32" r="5" fill="currentColor" opacity="0.15"/>
+                                <path d="M20 20L44 44" stroke="currentColor" stroke-width="1.5" opacity="0.2"/>
+                            </svg>
+                        </div>
+                        <h3>Enter Dimensions to Search</h3>
+                        <p>Input target OD, ID, and Length to search finished manufactured shells, evaluate raw casting envelopes, or inspect metallurgy & quality reports.</p>
+                    </div>
+
+                    <div class="no-results-state" id="no-results-state" style="display: none;">
+                        <div class="empty-icon">
+                            <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+                                <circle cx="28" cy="28" r="18" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+                                <path d="M42 42L56 56" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.3"/>
+                                <path d="M22 22L34 34M34 22L22 34" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+                            </svg>
+                        </div>
+                        <h3>No Matching Shells Found</h3>
+                        <p>Try widening the tolerance margin, relaxing machining allowances, or switching to 'Auto Match' mode.</p>
+                    </div>
+
+                    <!-- Results Containers (Card View & Table View) -->
+                    <div class="results-container" id="results-container"></div>
+                    <div class="table-results-container" id="table-results-container" style="display: none;"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- TAB 2: FOUNDRY QUALITY & DEFECT INTELLIGENCE               -->
+        <!-- ============================================================ -->
+        <section class="tab-content" id="tab-analytics">
+            <div class="analytics-layout">
+                <!-- KPI Cards Row -->
+                <div class="analytics-kpi-grid">
+                    <div class="kpi-card">
+                        <span class="kpi-label">Total Cast Shells</span>
+                        <span class="kpi-value" id="kpi-total-shells">—</span>
+                        <span class="kpi-sub">Across 24 Active Lots</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-label">Actual Cast Tonnage</span>
+                        <span class="kpi-value highlight-cyan" id="kpi-total-tonnage">— t</span>
+                        <span class="kpi-sub" id="kpi-job-tonnage">Job Card: — t</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-label">Net Weight Variance</span>
+                        <span class="kpi-value" id="kpi-weight-variance">— kg</span>
+                        <span class="kpi-sub" id="kpi-avg-variance">Avg: — kg / shell</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-label">Foundry Defect Rate</span>
+                        <span class="kpi-value highlight-amber" id="kpi-defect-rate">—%</span>
+                        <span class="kpi-sub" id="kpi-total-qdars">— QDAR reports</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-label">Scrap / Rejection Rate</span>
+                        <span class="kpi-value highlight-red" id="kpi-scrap-rate">—%</span>
+                        <span class="kpi-sub">Permanent foundry scrap</span>
+                    </div>
+                </div>
+
+                <!-- Casting Intelligence & Monthly Throughput Row -->
+                <div class="analytics-charts-grid">
+                    <!-- Monthly Casting Throughput -->
+                    <div class="analytics-chart-card">
+                        <div class="chart-card-header">
+                            <div>
+                                <h3 class="chart-card-title">Monthly Casting Volume & Tonnage (2025)</h3>
+                                <p class="chart-card-sub">Manufactured shells and shifting weight per month</p>
+                            </div>
+                            <span class="chart-badge">Production Rate</span>
+                        </div>
+                        <div class="casting-monthly-grid" id="casting-monthly-grid">
+                            <div class="chart-placeholder">Loading monthly casting volume...</div>
+                        </div>
+                    </div>
+
+                    <!-- Molding Sand & Core Process Distribution -->
+                    <div class="analytics-chart-card">
+                        <div class="chart-card-header">
+                            <div>
+                                <h3 class="chart-card-title">Molding Sand & Core Technology Distribution</h3>
+                                <p class="chart-card-sub">Sand binding processes & casting methods</p>
+                            </div>
+                            <span class="chart-badge">Foundry Processes</span>
+                        </div>
+                        <div class="process-distribution-grid" id="process-distribution-grid">
+                            <div class="chart-placeholder">Loading process distributions...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pareto & Defect Analysis Charts Grid -->
+                <div class="analytics-charts-grid">
+                    <!-- Defect Pareto Distribution Card -->
+                    <div class="analytics-chart-card">
+                        <div class="chart-card-header">
+                            <div>
+                                <h3 class="chart-card-title">Defect Category Pareto Distribution</h3>
+                                <p class="chart-card-sub">Frequency of occurrence and cumulative impact %</p>
+                            </div>
+                            <span class="chart-badge">80/20 Rule</span>
+                        </div>
+                        <div class="pareto-chart-container" id="pareto-chart-container">
+                            <div class="chart-placeholder">Loading Pareto metrics...</div>
+                        </div>
+                    </div>
+
+                    <!-- Alloy Scrap & Rework Rates -->
+                    <div class="analytics-chart-card">
+                        <div class="chart-card-header">
+                            <div>
+                                <h3 class="chart-card-title">Alloy Grade Scrap & Rework Breakdown</h3>
+                                <p class="chart-card-sub">Quality yield by metallurgical specification</p>
+                            </div>
+                        </div>
+                        <div class="alloy-table-container" id="alloy-table-container">
+                            <table class="analytics-table" id="alloy-table">
+                                <thead>
+                                    <tr>
+                                        <th>Alloy Standard</th>
+                                        <th>Total Cast</th>
+                                        <th>Defect Qty</th>
+                                        <th>Rejection %</th>
+                                        <th>Rework Qty</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lot Quality Heatmap Matrix -->
+                <div class="analytics-chart-card full-width">
+                    <div class="chart-card-header">
+                        <div>
+                            <h3 class="chart-card-title">Foundry Lot Quality & Defect Density Heatmap</h3>
+                            <p class="chart-card-sub">Defect ticket density across Lot # 1 to Lot # 24+</p>
+                        </div>
+                        <div class="heatmap-legend">
+                            <span class="legend-item"><span class="legend-dot dot-clean"></span> 0% Clean</span>
+                            <span class="legend-item"><span class="legend-dot dot-low"></span> ≤25% Low</span>
+                            <span class="legend-item"><span class="legend-dot dot-medium"></span> ≤50% Moderate</span>
+                            <span class="legend-item"><span class="legend-dot dot-high"></span> >50% Elevated</span>
+                        </div>
+                    </div>
+                    <div class="lot-heatmap-grid" id="lot-heatmap-grid">
+                        <div class="chart-placeholder">Loading lot quality heatmap...</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- TAB 3: ARCHIVE INGESTION & YEAR MANAGER                    -->
+        <!-- ============================================================ -->
+        <section class="tab-content" id="tab-ingestion">
+            <div class="ingestion-layout">
+                <!-- Left: Upload Zone -->
+                <div class="ingestion-upload-panel">
+                    <div class="upload-panel-header">
+                        <h2 class="section-title">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" class="section-icon">
+                                <path d="M4 14V16H16V14M10 3V12M10 3L6 7M10 3L14 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Ingest Historical Year Archive
+                        </h2>
+                        <p class="upload-panel-sub">Upload full-year ZIP archives containing M&Q and QDAR workbooks (2022–2024+).</p>
+                    </div>
+
+                    <form id="form-upload-archive" class="upload-form">
+                        <div class="input-group">
+                            <label class="input-label" for="input-archive-year">Manufacturing Batch Year</label>
+                            <input type="number" id="input-archive-year" class="input-field" value="2024" min="2000" max="2099" required>
+                            <div class="input-hint">Designates data year for database partitioning</div>
+                        </div>
+
+                        <!-- Drop Zone -->
+                        <div class="drop-zone" id="drop-zone">
+                            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" class="drop-zone-icon">
+                                <rect x="6" y="8" width="36" height="32" rx="4" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/>
+                                <path d="M24 16V28M24 16L18 22M24 16L30 22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <div class="drop-zone-text">
+                                <strong>Drag and drop .ZIP archive here</strong>
+                                <span>or click to browse filesystem</span>
+                            </div>
+                            <input type="file" id="input-archive-file" accept=".zip" class="file-input-hidden">
+                        </div>
+
+                        <div class="selected-file-info" id="selected-file-info" style="display: none;">
+                            <span class="file-icon">📦</span>
+                            <div class="file-details">
+                                <span class="file-name" id="selected-file-name">—</span>
+                                <span class="file-size" id="selected-file-size">—</span>
+                            </div>
+                            <button type="button" class="btn-remove-file" id="btn-remove-file">✕</button>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-upload" id="btn-submit-upload" disabled>
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path d="M8 2V10M8 10L5 7M8 10L11 7M2 13H14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Upload & Execute Ingestion Pipeline
+                        </button>
+                    </form>
+
+                    <!-- CLI Helper Info -->
+                    <div class="cli-info-box">
+                        <div class="cli-info-title">💻 CLI Batch Execution Alternative</div>
+                        <code>python -m etl.import_batch --year 2024 --mq-dir "data/raw/2024_MQ" --qdar-dir "data/raw/2024_QDAR"</code>
+                    </div>
+                </div>
+
+                <!-- Right: Live Terminal & Batch History -->
+                <div class="ingestion-console-panel">
+                    <div class="console-card">
+                        <div class="console-header">
+                            <div class="console-title-group">
+                                <span class="terminal-dot dot-red"></span>
+                                <span class="terminal-dot dot-yellow"></span>
+                                <span class="terminal-dot dot-green"></span>
+                                <span class="console-title">ETL Execution Worker Terminal</span>
+                            </div>
+                            <span class="console-status-badge" id="terminal-status-badge">STANDBY</span>
+                        </div>
+                        <div class="terminal-body" id="terminal-body">
+                            <div class="terminal-line text-muted">[00:00:00] Terminal initialized. Ready for ingestion batch...</div>
+                        </div>
+                    </div>
+
+                    <!-- Ingestion Batches Table -->
+                    <div class="batch-history-card">
+                        <div class="batch-history-header">
+                            <h3 class="chart-card-title">Past Batch Ingestion History</h3>
+                            <button class="btn btn-ghost" id="btn-refresh-history" title="Refresh history">↻ Refresh</button>
+                        </div>
+                        <table class="analytics-table" id="batch-history-table">
+                            <thead>
+                                <tr>
+                                    <th>Batch #</th>
+                                    <th>Year</th>
+                                    <th>Source Archive</th>
+                                    <th>Shells</th>
+                                    <th>Documents</th>
+                                    <th>Status</th>
+                                    <th>Timestamp</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ============================================================ -->
+    <!-- MODAL 1: 3-TAB SHELL INSPECTION & 2D SVG VISUALIZER MODAL   -->
+    <!-- ============================================================ -->
+    <div class="modal-overlay" id="specs-modal-overlay" style="display: none;">
+        <div class="modal modal-extra-wide" id="specs-modal">
+            <div class="modal-header">
+                <div>
+                    <h3 id="specs-modal-title">Detailed Shell Inspection & Quality History</h3>
+                    <span class="modal-subtitle" id="specs-modal-subtitle">Manufacturing Blueprint & Metallurgical Analysis</span>
+                </div>
+                <button class="btn btn-ghost modal-close" id="specs-modal-close">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M5 5L15 15M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Modal Sub-Tabs -->
+            <div class="modal-subtabs">
+                <button type="button" class="modal-subtab active" data-subtab="subtab-svg">
+                    📐 Dimensions & 2D SVG Cross-Section
+                </button>
+                <button type="button" class="modal-subtab" data-subtab="subtab-casting">
+                    🔥 Casting & Foundry Specs
+                </button>
+                <button type="button" class="modal-subtab" data-subtab="subtab-metallurgy">
+                    🧪 Metallurgy & Mechanical Tests
+                </button>
+                <button type="button" class="modal-subtab" data-subtab="subtab-quality">
+                    🛡️ Quality Logs & QDAR Reports
+                </button>
+            </div>
+
+            <div class="modal-body" id="specs-modal-body">
+                <!-- Subtab A: 2D SVG & Dimensional Matrix -->
+                <div class="modal-subtab-pane active" id="subtab-svg">
+                    <div class="svg-modal-grid">
+                        <div class="svg-diagram-card">
+                            <div class="svg-diagram-title">Real-Time Concentric 2D Shell Cross-Section</div>
+                            <div class="svg-canvas-container" id="svg-cross-section-container">
+                                <!-- SVG injected dynamically -->
+                            </div>
+                            <div class="svg-legend">
+                                <span class="legend-item"><span class="legend-box box-cast"></span> As-Cast Raw Stock</span>
+                                <span class="legend-item"><span class="legend-box box-finish"></span> Finished Machined Boundary</span>
+                                <span class="legend-item"><span class="legend-box box-bore"></span> Inner Bore Void</span>
+                            </div>
+                        </div>
+
+                        <div class="svg-specs-side">
+                            <div class="specs-section-title">Dimensional Specifications (mm)</div>
+                            <table class="specs-table" id="modal-dim-table">
+                                <thead>
+                                    <tr>
+                                        <th>Dimension</th>
+                                        <th>Finish Size</th>
+                                        <th>As-Cast Size</th>
+                                        <th>Machining Cut</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+
+                            <div class="specs-section-title">Machining Envelope & Stock Removal</div>
+                            <div class="envelope-summary-card" id="modal-envelope-summary"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Subtab B: Casting & Foundry Specs -->
+                <div class="modal-subtab-pane" id="subtab-casting">
+                    <div class="specs-section-title">Actual Casting Weight & Variance Tracking</div>
+                    <div class="casting-weights-grid" id="modal-casting-weights-grid">
+                        <!-- Injected dynamically -->
+                    </div>
+
+                    <div class="specs-section-title" style="margin-top: 15px;">Foundry Process & Tooling Parameters</div>
+                    <div class="casting-process-grid" id="modal-casting-process-grid">
+                        <!-- Injected dynamically -->
+                    </div>
+                </div>
+
+                <!-- Subtab C: Metallurgy & Chemistry Table -->
+                <div class="modal-subtab-pane" id="subtab-metallurgy">
+                    <div class="specs-section-title">Chemical Composition (% by Weight)</div>
+                    <table class="specs-table chemistry-table" id="modal-chem-table">
+                        <thead>
+                            <tr>
+                                <th>%C</th>
+                                <th>%Si</th>
+                                <th>%Mn</th>
+                                <th>%P</th>
+                                <th>%S</th>
+                                <th>%Cr</th>
+                                <th>%Ni</th>
+                                <th>%Mo</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+
+                    <div class="specs-section-title">Mechanical & Metallurgical Properties</div>
+                    <div class="mech-props-grid" id="modal-mech-grid"></div>
+                </div>
+
+                <!-- Subtab D: Quality & QDAR Defect Logs -->
+                <div class="modal-subtab-pane" id="subtab-quality">
+                    <div class="specs-section-title">Linked Engineering Quality Reports</div>
+                    <div id="modal-qdar-content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- MODAL 2: DOCUMENT PREVIEW / DIRECT DOWNLOAD MODAL           -->
+    <!-- ============================================================ -->
+    <div class="modal-overlay" id="modal-overlay" style="display: none;">
+        <div class="modal" id="doc-modal">
+            <div class="modal-header">
+                <div>
+                    <h3 id="modal-title">Document Inspection</h3>
+                    <span class="modal-subtitle" id="doc-modal-subtitle">Foundry Engineering Report</span>
+                </div>
+                <button class="btn btn-ghost modal-close" id="modal-close">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M5 5L15 15M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body" id="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- MODAL 3: SELECTIVE FILE DOWNLOAD MODAL (CHECKBOXES / ZIP)   -->
+    <!-- ============================================================ -->
+    <div class="modal-overlay" id="file-select-modal-overlay" style="display: none;">
+        <div class="modal file-select-modal" id="file-select-modal">
+            <div class="modal-header">
+                <div>
+                    <h3 id="file-select-modal-title">📦 Download Original Files</h3>
+                    <span class="modal-subtitle" id="file-select-modal-subtitle">Job Number Original Workbooks & Defect Reports</span>
+                </div>
+                <button class="btn btn-ghost modal-close" id="file-select-modal-close">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M5 5L15 15M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body" style="padding-top:0.5rem;">
+                <div class="file-select-toolbar">
+                    <div class="file-select-actions">
+                        <button type="button" class="btn-select-action" id="btn-modal-select-all">Select All</button>
+                        <button type="button" class="btn-select-action" id="btn-modal-deselect-all">Deselect All</button>
+                    </div>
+                    <label class="dossier-checkbox-label">
+                        <input type="checkbox" id="modal-include-summary" checked>
+                        Include Technical Dossier Summary (.txt)
+                    </label>
+                </div>
+
+                <div class="file-list-container" id="modal-file-list">
+                    <!-- Files injected dynamically -->
+                </div>
+
+                <div class="file-modal-footer">
+                    <div class="file-selection-summary">
+                        <span id="modal-selected-summary"><strong>0</strong> files selected</span>
+                    </div>
+                    <div class="file-modal-btn-group">
+                        <button type="button" class="btn btn-ghost" id="btn-file-modal-cancel">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="btn-file-modal-download">
+                            📦 Download Selected (ZIP)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>© Qadri Group — Industrial Foundry Shell &amp; Casting Intelligence Platform</p>
+    </footer>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

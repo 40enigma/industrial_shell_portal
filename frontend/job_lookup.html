@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="QADRI GROUP — Job Number Dossier & Document Download Center — Direct job lookup, full manufacturing specs, dimensional matrix, and selective source file downloads (ZIP/Single).">
+    <title>QADRI GROUP — Job Dossier &amp; File Selection Center</title>
+
+    <link rel="icon" type="image/svg+xml" href="/static/qadri_logo.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+
+    <!-- Header & Navigation -->
+    <header class="header" id="main-header">
+        <div class="header-inner">
+            <div class="logo-group">
+                <a href="/" style="text-decoration:none; display:flex; align-items:center; gap:12px;">
+                    <img src="/static/qadri_logo.svg" alt="Qadri Group Logo" class="logo-icon-img">
+                    <div>
+                        <h1 class="logo-title">QADRI GROUP</h1>
+                        <p class="logo-subtitle">Foundry Shell &amp; Casting Intelligence</p>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Theme Toggle Button -->
+            <button type="button" class="theme-toggle-btn" id="theme-toggle" title="Toggle Light/Dark Mode" aria-label="Toggle theme">
+                <svg class="theme-icon-sun" width="18" height="18" viewBox="0 0 20 20" fill="none">
+                    <circle cx="10" cy="10" r="4" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="M10 2V4M10 16V18M2 10H4M16 10H18M4.93 4.93L6.34 6.34M13.66 13.66L15.07 15.07M4.93 15.07L6.34 13.66M13.66 6.34L15.07 4.93" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+                <svg class="theme-icon-moon" width="18" height="18" viewBox="0 0 20 20" fill="none" style="display:none;">
+                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.003 8.003 0 1010.586 10.586z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+
+            <!-- Multi-Page Navigation Bar -->
+            <nav class="nav-link-group">
+                <a href="/" class="nav-link-btn">
+                    <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
+                        <circle cx="8.5" cy="8.5" r="6" stroke="currentColor" stroke-width="2"/>
+                        <path d="M13 13L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    Shell Search & Calculator
+                </a>
+                <a href="/job-lookup" class="nav-link-btn active">
+                    <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
+                        <rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/>
+                        <path d="M7 8H13M7 12H11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                    Job Dossier Center
+                </a>
+                <a href="/quality" class="nav-link-btn">
+                    <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
+                        <path d="M3 17V10M8 17V4M13 17V13M18 17V7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    Quality Intelligence
+                </a>
+                <a href="/ingestion" class="nav-link-btn">
+                    <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
+                        <path d="M4 14V16H16V14M10 3V12M10 3L6 7M10 3L14 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Archive Ingestion
+                </a>
+            </nav>
+
+            <div class="header-stats" id="header-stats">
+                <div class="stat-chip" id="stat-shells"><span class="stat-value">—</span><span class="stat-label">Shells</span></div>
+                <div class="stat-chip" id="stat-casting"><span class="stat-value highlight-cyan">—</span><span class="stat-label">Casting Logs</span></div>
+                <div class="stat-chip" id="stat-docs"><span class="stat-value">—</span><span class="stat-label">Total Docs</span></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="main-container">
+        <!-- Search Job Input Card -->
+        <div class="dossier-search-card">
+            <h2 class="section-title">
+                <svg width="22" height="22" viewBox="0 0 20 20" fill="none" class="section-icon">
+                    <rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="M7 8H13M7 12H11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+                Direct Job Number & Document Dossier Lookup
+            </h2>
+            <p class="text-secondary" style="font-size:0.85rem; margin-top:4px;">
+                Enter any manufacturing Job Number (e.g. <code>SE24-BSCM-0025</code> or <code>SE23-</code>), Drawing #, or IDM # to view complete dimensional records and selectively download all linked source workbooks.
+            </p>
+
+            <div class="dossier-search-input-group">
+                <input type="text" id="input-dossier-job" class="input-field" placeholder="Enter Job Number or Drawing # (e.g. SE24-BSCM-0025)" autocomplete="off" autofocus>
+                <button class="btn btn-primary" id="btn-dossier-search" style="padding:0 24px;">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="2"/>
+                        <path d="M11 11L14 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    Lookup Job
+                </button>
+            </div>
+        </div>
+
+        <!-- Job Results / Dossier View -->
+        <div id="dossier-result-container" style="display: none;">
+            <div class="dossier-result-layout">
+                <!-- Left Column: Specs, Dimensions & Metallurgy -->
+                <div style="display:flex; flex-direction:column; gap:1.2rem;">
+                    <!-- Identity Card -->
+                    <div class="analytics-chart-card">
+                        <div class="chart-card-header">
+                            <div>
+                                <h3 class="chart-card-title" id="dossier-shell-name">Industrial Casting Shell</h3>
+                                <p class="chart-card-sub" id="dossier-job-label">JOB # —</p>
+                            </div>
+                            <span class="job-highlight-badge prominent" id="dossier-lot-badge">Lot #—</span>
+                        </div>
+
+                        <div class="specs-section-title">Dimensional Specifications (mm)</div>
+                        <table class="specs-table" id="dossier-dim-table">
+                            <thead>
+                                <tr>
+                                    <th>Parameter</th>
+                                    <th>Finish Target</th>
+                                    <th>As-Cast Stock</th>
+                                    <th>Machining Cut</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Casting Intelligence Card -->
+                    <div class="analytics-chart-card">
+                        <div class="specs-section-title">Casting Weight & Process Intelligence</div>
+                        <div class="casting-weights-grid" id="dossier-weights-grid"></div>
+                        <div class="casting-process-grid" id="dossier-process-grid" style="margin-top:12px;"></div>
+                    </div>
+
+                    <!-- Metallurgy Card -->
+                    <div class="analytics-chart-card">
+                        <div class="specs-section-title">Chemical Composition (% Weight)</div>
+                        <table class="specs-table chemistry-table" id="dossier-chem-table">
+                            <thead>
+                                <tr>
+                                    <th>%C</th><th>%Si</th><th>%Mn</th><th>%P</th><th>%S</th><th>%Cr</th><th>%Ni</th><th>%Mo</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                        <div class="specs-section-title" style="margin-top:12px;">Mechanical Properties</div>
+                        <div class="mech-props-grid" id="dossier-mech-grid"></div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Interactive Source Files & Checkbox Download Center -->
+                <div style="display:flex; flex-direction:column; gap:1.2rem;">
+                    <div class="analytics-chart-card">
+                        <div class="chart-card-header">
+                            <div>
+                                <h3 class="chart-card-title">📦 Linked Original Source Files</h3>
+                                <p class="chart-card-sub">Select files to download individually or as a combined ZIP package</p>
+                            </div>
+                            <span class="chart-badge" id="dossier-files-count">0 Files</span>
+                        </div>
+
+                        <!-- Selection Toolbar -->
+                        <div class="file-select-toolbar">
+                            <div class="file-select-actions">
+                                <button type="button" class="btn-select-action" id="btn-dossier-select-all">Select All</button>
+                                <button type="button" class="btn-select-action" id="btn-dossier-deselect-all">Deselect All</button>
+                            </div>
+                            <label class="dossier-checkbox-label">
+                                <input type="checkbox" id="dossier-include-summary" checked>
+                                Include Dossier Summary (.txt)
+                            </label>
+                        </div>
+
+                        <!-- File Checklist Container -->
+                        <div class="file-list-container" id="dossier-file-list">
+                            <div class="chart-placeholder">Loading linked original files...</div>
+                        </div>
+
+                        <!-- Download Footer -->
+                        <div class="file-modal-footer">
+                            <div class="file-selection-summary">
+                                <span id="dossier-selected-summary"><strong>0</strong> files selected</span>
+                            </div>
+                            <button class="btn btn-primary" id="btn-dossier-download-selected" disabled>
+                                📦 Download Selected Files
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty / Not Found States -->
+        <div class="empty-state" id="dossier-empty-state">
+            <div class="empty-icon">
+                <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+                    <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+                    <rect x="20" y="20" width="24" height="24" rx="3" stroke="currentColor" stroke-width="2" opacity="0.2"/>
+                    <path d="M26 28H38M26 34H34" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+                </svg>
+            </div>
+            <h3>Lookup Any Manufacturing Job Number</h3>
+            <p>Enter a Job Number above to inspect its complete manufacturing dossier and download all associated original workbooks.</p>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>© Qadri Group — Industrial Foundry Shell &amp; Casting Intelligence Platform</p>
+    </footer>
+
+    <div class="toast-container" id="toast-container"></div>
+    <script src="/static/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initJobLookupPage();
+        });
+    </script>
+</body>
+</html>

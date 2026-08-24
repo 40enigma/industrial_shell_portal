@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="QADRI GROUP — Archive Ingestion & Year Manager — Upload historical foundry datasets (ZIP archives), extract workbooks, and stream live ETL execution logs.">
+    <title>QADRI GROUP — Archive Ingestion &amp; Year Manager</title>
+
+    <link rel="icon" type="image/svg+xml" href="/static/qadri_logo.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+
+    <!-- Header & Navigation -->
+    <header class="header" id="main-header">
+        <div class="header-inner">
+            <div class="logo-group">
+                <a href="/" style="text-decoration:none; display:flex; align-items:center; gap:12px;">
+                    <img src="/static/qadri_logo.svg" alt="Qadri Group Logo" class="logo-icon-img">
+                    <div>
+                        <h1 class="logo-title">QADRI GROUP</h1>
+                        <p class="logo-subtitle">Foundry Shell &amp; Casting Intelligence</p>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Theme Toggle Button -->
+            <button type="button" class="theme-toggle-btn" id="theme-toggle" title="Toggle Light/Dark Mode" aria-label="Toggle theme">
+                <svg class="theme-icon-sun" width="18" height="18" viewBox="0 0 20 20" fill="none">
+                    <circle cx="10" cy="10" r="4" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="M10 2V4M10 16V18M2 10H4M16 10H18M4.93 4.93L6.34 6.34M13.66 13.66L15.07 15.07M4.93 15.07L6.34 13.66M13.66 6.34L15.07 4.93" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+                <svg class="theme-icon-moon" width="18" height="18" viewBox="0 0 20 20" fill="none" style="display:none;">
+                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.003 8.003 0 1010.586 10.586z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+
+            <!-- Multi-Page Navigation Bar -->
+            <nav class="nav-link-group">
+                <a href="/" class="nav-link-btn">
+                    <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
+                        <circle cx="8.5" cy="8.5" r="6" stroke="currentColor" stroke-width="2"/>
+                        <path d="M13 13L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    Shell Search & Calculator
+                </a>
+                <a href="/job-lookup" class="nav-link-btn">
+                    <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
+                        <rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/>
+                        <path d="M7 8H13M7 12H11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                    Job Dossier Center
+                </a>
+                <a href="/quality" class="nav-link-btn">
+                    <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
+                        <path d="M3 17V10M8 17V4M13 17V13M18 17V7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    Quality Intelligence
+                </a>
+                <a href="/ingestion" class="nav-link-btn active">
+                    <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
+                        <path d="M4 14V16H16V14M10 3V12M10 3L6 7M10 3L14 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Archive Ingestion
+                </a>
+            </nav>
+
+            <div class="header-stats" id="header-stats">
+                <div class="stat-chip" id="stat-shells"><span class="stat-value">—</span><span class="stat-label">Shells</span></div>
+                <div class="stat-chip" id="stat-casting"><span class="stat-value highlight-cyan">—</span><span class="stat-label">Casting Logs</span></div>
+                <div class="stat-chip" id="stat-docs"><span class="stat-value">—</span><span class="stat-label">Total Docs</span></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="main-container">
+        <div class="ingestion-layout" style="margin-top: 1rem;">
+            <!-- Left: Upload Zone -->
+            <div class="ingestion-upload-panel">
+                <div class="upload-panel-header">
+                    <h2 class="section-title">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" class="section-icon">
+                            <path d="M4 14V16H16V14M10 3V12M10 3L6 7M10 3L14 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Ingest Historical Year Archive
+                    </h2>
+                    <p class="upload-panel-sub">Upload full-year ZIP archives containing M&Q workbooks, Casting Logs, and QDAR defect reports.</p>
+                </div>
+
+                <form id="form-upload-archive" class="upload-form">
+                    <div class="input-group">
+                        <label class="input-label" for="input-archive-year">Manufacturing Batch Year</label>
+                        <input type="number" id="input-archive-year" class="input-field" value="2024" min="2000" max="2099" required>
+                        <div class="input-hint">Designates data year for database partitioning</div>
+                    </div>
+
+                    <!-- Drop Zone -->
+                    <div class="drop-zone" id="drop-zone">
+                        <svg width="48" height="48" viewBox="0 0 48 48" fill="none" class="drop-zone-icon">
+                            <rect x="6" y="8" width="36" height="32" rx="4" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/>
+                            <path d="M24 16V28M24 16L18 22M24 16L30 22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <div class="drop-zone-text">
+                            <strong>Drag and drop .ZIP archive here</strong>
+                            <span>or click to browse filesystem</span>
+                        </div>
+                        <input type="file" id="input-archive-file" accept=".zip" class="file-input-hidden">
+                    </div>
+
+                    <div class="selected-file-info" id="selected-file-info" style="display: none;">
+                        <span class="file-icon">📦</span>
+                        <div class="file-details">
+                            <span class="file-name" id="selected-file-name">—</span>
+                            <span class="file-size" id="selected-file-size">—</span>
+                        </div>
+                        <button type="button" class="btn-remove-file" id="btn-remove-file">✕</button>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-upload" id="btn-submit-upload" disabled>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M8 2V10M8 10L5 7M8 10L11 7M2 13H14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Upload & Execute Ingestion Pipeline
+                    </button>
+                </form>
+
+                <!-- CLI Helper Info -->
+                <div class="cli-info-box">
+                    <div class="cli-info-title">💻 CLI Batch Execution Alternative</div>
+                    <code>python -m etl.import_batch --year 2024 --mq-dir "data/raw/2024/M&Q" --qdar-dir "data/raw/2024/QDARS"</code>
+                </div>
+            </div>
+
+            <!-- Right: Live Terminal & Batch History -->
+            <div class="ingestion-console-panel">
+                <div class="console-card">
+                    <div class="console-header">
+                        <div class="console-title-group">
+                            <span class="terminal-dot dot-red"></span>
+                            <span class="terminal-dot dot-yellow"></span>
+                            <span class="terminal-dot dot-green"></span>
+                            <span class="console-title">ETL Execution Worker Terminal</span>
+                        </div>
+                        <span class="console-status-badge" id="terminal-status-badge">STANDBY</span>
+                    </div>
+                    <div class="terminal-body" id="terminal-body">
+                        <div class="terminal-line text-muted">[00:00:00] Terminal initialized. Ready for ingestion batch...</div>
+                    </div>
+                </div>
+
+                <!-- Ingestion Batches Table -->
+                <div class="batch-history-card">
+                    <div class="batch-history-header">
+                        <h3 class="chart-card-title">Ingestion Batches History</h3>
+                        <button class="btn btn-ghost" id="btn-refresh-history" title="Refresh history">↻ Refresh</button>
+                    </div>
+                    <table class="analytics-table" id="batch-history-table">
+                        <thead>
+                            <tr>
+                                <th>Batch #</th>
+                                <th>Year</th>
+                                <th>Source Archive</th>
+                                <th>Shells</th>
+                                <th>Documents</th>
+                                <th>Status</th>
+                                <th>Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>© Qadri Group — Industrial Foundry Shell &amp; Casting Intelligence Platform</p>
+    </footer>
+
+    <div class="toast-container" id="toast-container"></div>
+    <script src="/static/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof setupIngestionUpload === 'function') {
+                setupIngestionUpload();
+            }
+            if (typeof loadBatchHistory === 'function') {
+                loadBatchHistory();
+            }
+        });
+    </script>
+</body>
+</html>
