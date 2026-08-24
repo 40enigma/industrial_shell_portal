@@ -152,7 +152,7 @@ def calculate_wall_thickness(od: float | None, id_dim: float | None) -> float | 
 def parse_casting_log(filepath: Path | str, year: int = 2025) -> list[dict]:
     """
     Parse Actual Casting Log Excel file with streaming iterator.
-    Handles the 2025 sheet and dynamic multi-sheet configurations.
+    Handles .xlsx (openpyxl) and legacy .xls (xlrd) formats, and dynamic multi-sheet configurations.
     """
     path = Path(filepath)
     if not path.exists():
@@ -161,25 +161,43 @@ def parse_casting_log(filepath: Path | str, year: int = 2025) -> list[dict]:
 
     log.info(f"Opening Casting Log: {path.name} (Year: {year})")
 
-    try:
-        wb = openpyxl.load_workbook(str(path), read_only=True, data_only=True)
-    except Exception as e:
-        log.error(f"Failed to open workbook {path}: {e}")
-        return []
-
-    target_sheet = None
-    year_str = str(year)
-    for sn in wb.sheetnames:
-        if year_str in sn or "casting" in sn.lower() or "log" in sn.lower():
-            target_sheet = sn
-            break
-    if not target_sheet:
-        target_sheet = wb.sheetnames[0]
-
-    sheet = wb[target_sheet]
-    log.info(f"Parsing sheet: '{target_sheet}'...")
-
-    rows = list(sheet.iter_rows(values_only=True))
+    rows = []
+    if path.suffix.lower() == ".xls":
+        try:
+            import xlrd
+            wb = xlrd.open_workbook(str(path))
+            target_sheet = None
+            year_str = str(year)
+            for sn in wb.sheet_names():
+                if year_str in sn or "casting" in sn.lower() or "log" in sn.lower():
+                    target_sheet = sn
+                    break
+            if not target_sheet:
+                target_sheet = wb.sheet_names()[0]
+            sheet = wb.sheet_by_name(target_sheet)
+            log.info(f"Parsing sheet: '{target_sheet}' via xlrd...")
+            for r in range(sheet.nrows):
+                rows.append([sheet.cell_value(r, c) for c in range(sheet.ncols)])
+        except Exception as e:
+            log.error(f"Failed to open .xls workbook {path}: {e}")
+            return []
+    else:
+        try:
+            wb = openpyxl.load_workbook(str(path), read_only=True, data_only=True)
+            target_sheet = None
+            year_str = str(year)
+            for sn in wb.sheetnames:
+                if year_str in sn or "casting" in sn.lower() or "log" in sn.lower():
+                    target_sheet = sn
+                    break
+            if not target_sheet:
+                target_sheet = wb.sheetnames[0]
+            sheet = wb[target_sheet]
+            log.info(f"Parsing sheet: '{target_sheet}'...")
+            rows = list(sheet.iter_rows(values_only=True))
+        except Exception as e:
+            log.error(f"Failed to open workbook {path}: {e}")
+            return []
 
     header_keywords = [
         "job no", "job #", "idm", "sr", "drawing", "finish", "casted",

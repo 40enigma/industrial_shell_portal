@@ -81,6 +81,11 @@ def run_background_ingestion(batch_id: int, year: int, extract_dir: Path):
         data_root = _resolve_data_root(extract_dir, year)
         logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Resolved data root: {data_root}")
         
+        # Clean up any existing records for this specific year to ensure idempotent re-ingestion
+        db.query(Document).filter(Document.data_year == year).delete()
+        db.query(Shell).filter(Shell.data_year == year).delete()
+        db.commit()
+        
         # Check for M&Q workbooks
         logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Scanning for M&Q workbooks...")
         mq_records = parse_all_mq_files(mq_dir=data_root, year=year)
@@ -92,16 +97,29 @@ def run_background_ingestion(batch_id: int, year: int, extract_dir: Path):
         # Check for Casting Log workbooks
         casting_records = []
         cast_candidates = (
-            [data_root / f"Actual Casting Log {year}.xlsx", data_root / "Actual Casting Log 2025.xlsx"] +
-            list(data_root.glob("*Casting*.xlsx")) + list(data_root.glob("*casting*.xlsx")) +
-            list(data_root.rglob("*Casting*.xlsx")) + list(data_root.rglob("*casting*.xlsx"))
+            list(data_root.glob(f"*Casting*{year}*.xls*")) +
+            list(data_root.glob(f"*casting*{year}*.xls*")) +
+            list(data_root.glob(f"*Log*{year}*.xls*")) +
+            list(data_root.glob("*Casting*.xls*")) +
+            list(data_root.glob("*casting*.xls*")) +
+            list(data_root.glob("*Log*.xls*")) +
+            list(data_root.rglob(f"*Casting*{year}*.xls*")) +
+            list(data_root.rglob(f"*casting*{year}*.xls*")) +
+            list(data_root.rglob(f"*Log*{year}*.xls*")) +
+            list(data_root.rglob("*Casting*.xls*")) +
+            list(data_root.rglob("*casting*.xls*")) +
+            list(data_root.rglob("*Log*.xls*"))
         )
+        seen_paths = set()
         for cast_candidate in cast_candidates:
-            if cast_candidate.exists() and not cast_candidate.name.startswith("~$"):
+            if cast_candidate.exists() and not cast_candidate.name.startswith("~$") and cast_candidate not in seen_paths:
+                seen_paths.add(cast_candidate)
                 from etl.clean_casting_log import parse_casting_log
-                casting_records = parse_casting_log(cast_candidate, year=year)
-                logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Extracted {len(casting_records)} actual casting log records from {cast_candidate.name}.")
-                break
+                records = parse_casting_log(cast_candidate, year=year)
+                if records:
+                    casting_records = records
+                    logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Extracted {len(casting_records)} actual casting log records from {cast_candidate.name}.")
+                    break
 
         # Seed shells (merged with casting data)
         job_base, tokens, drawings = seed_shells(db, mq_records=mq_records, casting_records=casting_records)
