@@ -365,11 +365,12 @@ body {
 /* --- TAB 1: Search & Calculator Layout --- */
 .search-layout {
     display: grid;
-    grid-template-columns: minmax(320px, 440px) 1fr;
-    gap: 2rem;
+    grid-template-columns: minmax(300px, 390px) minmax(0, 1fr);
+    gap: 1.75rem;
     align-items: start;
     max-width: 100%;
-    overflow: hidden;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .search-panel {
@@ -1100,6 +1101,10 @@ body {
 /* --- Search Results & Empty States --- */
 .results-section {
     position: relative;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 .results-query {
@@ -1168,13 +1173,15 @@ body {
 
 /* --- Dense Engineering Table View --- */
 .table-results-container {
-    background: var(--bg-card);
+    background: var(--bg-secondary);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-lg);
     overflow-x: auto;
-    overflow-y: hidden;
+    overflow-y: auto;
+    max-height: calc(100vh - 220px);
     max-width: 100%;
     width: 100%;
+    box-sizing: border-box;
     margin-top: 0.5rem;
     box-shadow: var(--shadow-sm);
     -webkit-overflow-scrolling: touch;
@@ -1183,6 +1190,7 @@ body {
 /* Custom Scrollbar for horizontal scrolling below the table */
 .table-results-container::-webkit-scrollbar {
     height: 11px;
+    width: 8px;
 }
 
 .table-results-container::-webkit-scrollbar-track {
@@ -1227,7 +1235,7 @@ body {
 }
 
 .dense-table th {
-    background: rgba(15, 23, 42, 0.98);
+    background: #0d1322;
     color: var(--text-secondary);
     font-size: 0.68rem;
     text-transform: uppercase;
@@ -1236,11 +1244,10 @@ body {
     top: 0;
     z-index: 2;
     user-select: none;
-    backdrop-filter: blur(8px);
 }
 
 [data-theme="light"] .dense-table th {
-    background: rgba(241, 245, 249, 0.98);
+    background: #f8fafc;
     color: var(--text-secondary);
 }
 
@@ -1266,18 +1273,23 @@ body {
     position: sticky;
     left: 0;
     z-index: 3;
-    background: var(--bg-card);
-    box-shadow: 2px 0 6px rgba(0, 0, 0, 0.25);
+    background: #0d1322;
+    box-shadow: 3px 0 8px rgba(0, 0, 0, 0.4);
 }
 
 [data-theme="light"] .dense-table th.col-job,
 [data-theme="light"] .dense-table td.col-job {
     background: #ffffff;
-    box-shadow: 2px 0 6px rgba(0, 0, 0, 0.06);
+    box-shadow: 3px 0 8px rgba(0, 0, 0, 0.08);
 }
 
 .dense-table th.col-job {
-    z-index: 4;
+    z-index: 5;
+    background: #090d16;
+}
+
+[data-theme="light"] .dense-table th.col-job {
+    background: #f1f5f9;
 }
 
 /* Sticky right column (Actions) */
@@ -1286,19 +1298,24 @@ body {
     position: sticky;
     right: 0;
     z-index: 3;
-    background: var(--bg-card);
-    box-shadow: -2px 0 6px rgba(0, 0, 0, 0.25);
+    background: #0d1322;
+    box-shadow: -3px 0 8px rgba(0, 0, 0, 0.4);
     text-align: center;
 }
 
 [data-theme="light"] .dense-table th.col-actions,
 [data-theme="light"] .dense-table td.col-actions {
     background: #ffffff;
-    box-shadow: -2px 0 6px rgba(0, 0, 0, 0.06);
+    box-shadow: -3px 0 8px rgba(0, 0, 0, 0.08);
 }
 
 .dense-table th.col-actions {
-    z-index: 4;
+    z-index: 5;
+    background: #090d16;
+}
+
+[data-theme="light"] .dense-table th.col-actions {
+    background: #f1f5f9;
 }
 
 /* Job Number Highlight Badge */
@@ -1321,6 +1338,18 @@ body {
     border-color: rgba(6, 182, 212, 0.45);
     color: #38bdf8;
     box-shadow: 0 0 10px rgba(6, 182, 212, 0.15);
+}
+
+.job-piece-tag {
+    color: var(--accent-amber);
+    font-weight: 800;
+    margin-left: 2px;
+}
+
+.meta-chip-piece {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: rgba(245, 158, 11, 0.35);
+    color: #fbbf24;
 }
 
 .btn-bundle-dl {

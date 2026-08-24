@@ -191,82 +191,132 @@ COL_MAP_DEFAULTS = {
 
 
 def parse_single_mq_workbook(filepath: Path, lot_dir_name: str, year: int = 2025) -> list[dict]:
-    """Parse one M&Q workbook (.xls) for master dimensional data and metallurgy."""
+    """Parse one M&Q workbook (.xls or .xlsx) for master dimensional data and metallurgy."""
     records = []
     lot_num = extract_lot_number(lot_dir_name)
 
+    wb = None
+    is_openpyxl = False
     try:
         wb = xlrd.open_workbook(str(filepath))
-    except Exception as e:
-        log.error(f"Failed to open {filepath}: {e}")
-        return records
+    except Exception:
+        try:
+            import openpyxl
+            wb = openpyxl.load_workbook(str(filepath), data_only=True)
+            is_openpyxl = True
+        except Exception as e2:
+            log.error(f"Failed to open {filepath} with both xlrd and openpyxl: {e2}")
+            return records
 
     # Locate 'M&Q data' summary sheet
     summary_name = None
-    for sn in wb.sheet_names():
-        if "m&q" in sn.lower() or "m & q" in sn.lower():
+    sheet_names = wb.sheetnames if is_openpyxl else wb.sheet_names()
+    for sn in sheet_names:
+        if "m&q" in sn.lower() or "m & q" in sn.lower() or "mnq" in sn.lower():
             summary_name = sn
             break
     if not summary_name:
-        summary_name = wb.sheet_names()[0]
+        summary_name = sheet_names[0]
 
-    sh = wb.sheet_by_name(summary_name)
+    sh = wb[summary_name] if is_openpyxl else wb.sheet_by_name(summary_name)
+    num_rows = sh.max_row if is_openpyxl else sh.nrows
+    num_cols = sh.max_column if is_openpyxl else sh.ncols
 
-    # Dynamic column mapping based on row 2 headers
+    def get_cell(r, c):
+        if is_openpyxl:
+            return sh.cell(row=r + 1, column=c + 1).value
+        else:
+            return sh.cell_value(r, c)
+
+    # 1. Header rows are standard rows 0, 1, 2 (title, primary header, secondary sub-headers)
+    header_rows = [r for r in range(min(3, num_rows))]
+    data_start_row = 3
+
     col_map = dict(COL_MAP_DEFAULTS)
-    if sh.nrows >= 3:
-        row2_vals = [str(sh.cell_value(2, c)).strip().replace("\n", " ").lower() for c in range(sh.ncols)]
-        for c, h in enumerate(row2_vals):
-            if "lot" in h and "wt" not in h:
+
+    # 2. Extract base columns from all header rows
+    for hr in header_rows:
+        for c in range(num_cols):
+            v = str(get_cell(hr, c) or "").strip().replace("\n", " ").lower()
+            if "lot" in v and "wt" not in v:
                 col_map["lot_number"] = c
-            elif "idm" in h:
+            elif "sr" in v and "job" not in v:
+                col_map["serial"] = c
+            elif "idm" in v:
                 col_map["idm"] = c
-            elif "job no" in h or "job #" in h or ("job" in h and "wt" not in h and "card" not in h):
+            elif "job no" in v or "job #" in v or (v.startswith("job") and "wt" not in v and "card" not in v):
                 col_map["job_number"] = c
-            elif h == "name":
+            elif (v == "name" or "shell name" in v or "item name" in v) and "drawing" not in v:
                 col_map["name"] = c
-            elif "drawing" in h:
+            elif "drawing" in v:
                 col_map["drawing"] = c
-            elif "shell type" in h or "type" in h:
-                col_map["shell_type"] = c
-            elif "piece" in h:
+            elif "piece" in v:
                 col_map["piece"] = c
-            elif "material" in h or "standard" in h:
-                col_map["material_standard"] = c
-            elif "job card" in h or "card wt" in h or (h.startswith("wt") and "cage" not in h):
+            elif "type" in v and "shell" in v:
+                col_map["shell_type"] = c
+            elif "job card" in v or "card wt" in v or (v.startswith("wt") and "cage" not in v):
                 col_map["weight"] = c
+            elif "material" in v or "standard" in v:
+                col_map["material_standard"] = c
+
+    # 3. Section bounds for Finish and Casted dimensions
+    finish_start, cast_start = None, None
+    for hr in header_rows:
+        for c in range(num_cols):
+            v = str(get_cell(hr, c) or "").strip().replace("\n", " ").lower()
+            if "finish" in v and finish_start is None:
+                finish_start = c
+            elif "cast" in v and cast_start is None:
+                cast_start = c
+
+    for hr in header_rows:
+        r_vals = [str(get_cell(hr, c) or "").strip().replace("\n", " ").lower() for c in range(num_cols)]
+        if finish_start is not None:
+            end_f = cast_start if cast_start is not None else finish_start + 4
+            for c in range(finish_start, min(end_f, len(r_vals))):
+                v2 = r_vals[c]
+                if v2 == "od": col_map["finish_od"] = c
+                elif v2 == "id": col_map["finish_id"] = c
+                elif "len" in v2 or "length" in v2: col_map["finish_length"] = c
+
+        if cast_start is not None:
+            end_c = cast_start + 4
+            for c in range(cast_start, min(end_c, len(r_vals))):
+                v2 = r_vals[c]
+                if v2 == "od": col_map["cast_od"] = c
+                elif v2 == "id": col_map["cast_id"] = c
+                elif "len" in v2 or "length" in v2: col_map["cast_length"] = c
 
     # Catalog shell-specific sheet names
-    shell_sheets = [sn for sn in wb.sheet_names() if sn.lower().startswith("shell")]
+    shell_sheets = [sn for sn in sheet_names if sn.lower().startswith("shell")]
 
-    DATA_START_ROW = 4
-    for row_idx in range(DATA_START_ROW, sh.nrows):
-        job_raw = sh.cell_value(row_idx, col_map["job_number"])
+    for row_idx in range(data_start_row, num_rows):
+        job_raw = get_cell(row_idx, col_map.get("job_number", 4))
         job_number = normalize_job_number(job_raw)
 
         if not job_number:
             continue
 
-        name_raw = safe_str(sh.cell_value(row_idx, col_map["name"]))
+        name_raw = safe_str(get_cell(row_idx, col_map.get("name", 5)))
         if not name_raw:
             continue
 
-        od = safe_float(sh.cell_value(row_idx, col_map["finish_od"]))
-        id_dim = safe_float(sh.cell_value(row_idx, col_map["finish_id"]))
-        length = safe_float(sh.cell_value(row_idx, col_map["finish_length"]))
+        od = safe_float(get_cell(row_idx, col_map.get("finish_od", 12)))
+        id_dim = safe_float(get_cell(row_idx, col_map.get("finish_id", 13)))
+        length = safe_float(get_cell(row_idx, col_map.get("finish_length", 14)))
 
         # Filter out zero-dimension template rows
         if od is None or od <= 0 or length is None or length <= 0:
             continue
 
-        cast_od = safe_float(sh.cell_value(row_idx, col_map["cast_od"]))
-        cast_id = safe_float(sh.cell_value(row_idx, col_map["cast_id"]))
-        cast_length = safe_float(sh.cell_value(row_idx, col_map["cast_length"]))
+        cast_od = safe_float(get_cell(row_idx, col_map.get("cast_od", 15)))
+        cast_id = safe_float(get_cell(row_idx, col_map.get("cast_id", 16)))
+        cast_length = safe_float(get_cell(row_idx, col_map.get("cast_length", 17)))
 
         wall_thickness = calculate_wall_thickness(od, id_dim)
         cast_wall_thickness = calculate_wall_thickness(cast_od, cast_id)
 
-        serial = safe_float(sh.cell_value(row_idx, col_map["serial"]))
+        serial = safe_float(get_cell(row_idx, col_map.get("serial", 2)))
         serial_int = int(serial) if serial is not None else None
 
         sheet_ref = None
@@ -275,8 +325,8 @@ def parse_single_mq_workbook(filepath: Path, lot_dir_name: str, year: int = 2025
             if candidate in shell_sheets:
                 sheet_ref = candidate
 
-        mat_raw = safe_str(sh.cell_value(row_idx, col_map["material_standard"]))
-        shell_type_raw = safe_str(sh.cell_value(row_idx, col_map["shell_type"]))
+        mat_raw = safe_str(get_cell(row_idx, col_map.get("material_standard", 23)))
+        shell_type_raw = safe_str(get_cell(row_idx, col_map.get("shell_type", 7)))
 
         # Clean noise values from numeric template cells
         if mat_raw and mat_raw.strip().isdigit():
@@ -288,19 +338,19 @@ def parse_single_mq_workbook(filepath: Path, lot_dir_name: str, year: int = 2025
         meta_profile = get_metallurgy_profile(mat_raw)
 
         # Extract explicit subsheet measurements if available
-        if sheet_ref:
+        if sheet_ref and not is_openpyxl:
             explicit_chem = parse_shell_subsheet_chemistry(wb, sheet_ref)
             meta_profile.update(explicit_chem)
 
         record = {
             "lot_number": lot_num,
             "serial_number": serial_int,
-            "idm_number": safe_str(sh.cell_value(row_idx, col_map["idm"])),
+            "idm_number": safe_str(get_cell(row_idx, col_map.get("idm", 3))),
             "job_number": job_number,
             "shell_name": name_raw,
-            "drawing_number": safe_str(sh.cell_value(row_idx, col_map["drawing"])),
+            "drawing_number": safe_str(get_cell(row_idx, col_map.get("drawing", 6))),
             "shell_type": shell_type_raw,
-            "piece_number": normalize_piece_number(safe_str(sh.cell_value(row_idx, col_map["piece"]))),
+            "piece_number": normalize_piece_number(safe_str(get_cell(row_idx, col_map.get("piece", 8)))),
             "od": od,
             "id_dim": id_dim,
             "length": length,
@@ -309,7 +359,7 @@ def parse_single_mq_workbook(filepath: Path, lot_dir_name: str, year: int = 2025
             "cast_id": cast_id,
             "cast_length": cast_length,
             "cast_wall_thickness": cast_wall_thickness,
-            "weight": safe_float(sh.cell_value(row_idx, col_map["weight"])),
+            "weight": safe_float(get_cell(row_idx, col_map.get("weight", 18))),
             "material_standard": mat_raw,
             "data_year": year,
             # Metallurgy & Mechanical Properties
@@ -332,7 +382,7 @@ def parse_single_mq_workbook(filepath: Path, lot_dir_name: str, year: int = 2025
         }
         records.append(record)
 
-    log.info(f"  Lot {lot_num:>2} | {filepath.name} | {len(records)} valid shells extracted")
+    log.info(f"  Lot {lot_num or 0:>2} | {filepath.name} | {len(records)} valid shells extracted")
     return records
 
 

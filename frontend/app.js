@@ -264,12 +264,6 @@ function setupEventListeners() {
             DOM.btnViewTable.classList.remove('active');
             DOM.resultsContainer.style.display = 'flex';
             DOM.tableResultsContainer.style.display = 'none';
-            if (DOM.resultsContainer.children.length === 0 && currentSearchResults.length > 0) {
-                currentSearchResults.forEach((shell, index) => {
-                    const card = createResultCard(shell, index, currentMode === 'envelope');
-                    DOM.resultsContainer.appendChild(card);
-                });
-            }
         });
 
         DOM.btnViewTable.addEventListener('click', () => {
@@ -278,7 +272,6 @@ function setupEventListeners() {
             DOM.btnViewCards.classList.remove('active');
             DOM.resultsContainer.style.display = 'none';
             DOM.tableResultsContainer.style.display = 'block';
-            if (currentSearchResults.length > 0) renderDenseTable(currentSearchResults);
         });
     }
 
@@ -518,8 +511,8 @@ async function performSearch() {
         currentSearchResults = data.results || [];
 
         if (currentSearchResults.length > 0) {
-            renderResults(data);
             setUIState('results');
+            renderResults(data);
             showToast(`Evaluated ${currentSearchResults.length} candidate shells`, 'success', 2500);
         } else {
             setUIState('no-results');
@@ -542,20 +535,32 @@ function exportToCSV() {
 }
 
 function setUIState(state) {
-    DOM.loadingState.style.display = 'none';
-    DOM.emptyState.style.display = 'none';
-    DOM.noResultsState.style.display = 'none';
-    DOM.resultsHeader.style.display = 'none';
-    DOM.resultsContainer.innerHTML = '';
-    DOM.tableResultsContainer.innerHTML = '';
+    if (DOM.loadingState) DOM.loadingState.style.display = 'none';
+    if (DOM.emptyState) DOM.emptyState.style.display = 'none';
+    if (DOM.noResultsState) DOM.noResultsState.style.display = 'none';
+    if (DOM.resultsHeader) DOM.resultsHeader.style.display = 'none';
 
-    if (state === 'loading') DOM.loadingState.style.display = 'flex';
-    else if (state === 'empty') DOM.emptyState.style.display = 'flex';
-    else if (state === 'no-results') DOM.noResultsState.style.display = 'flex';
-    else if (state === 'results') {
-        DOM.resultsHeader.style.display = 'flex';
-        if (currentView === 'cards') DOM.resultsContainer.style.display = 'flex';
-        else DOM.tableResultsContainer.style.display = 'block';
+    if (state === 'loading') {
+        if (DOM.resultsContainer) DOM.resultsContainer.innerHTML = '';
+        if (DOM.tableResultsContainer) DOM.tableResultsContainer.innerHTML = '';
+        if (DOM.loadingState) DOM.loadingState.style.display = 'flex';
+    } else if (state === 'empty') {
+        if (DOM.resultsContainer) DOM.resultsContainer.innerHTML = '';
+        if (DOM.tableResultsContainer) DOM.tableResultsContainer.innerHTML = '';
+        if (DOM.emptyState) DOM.emptyState.style.display = 'flex';
+    } else if (state === 'no-results') {
+        if (DOM.resultsContainer) DOM.resultsContainer.innerHTML = '';
+        if (DOM.tableResultsContainer) DOM.tableResultsContainer.innerHTML = '';
+        if (DOM.noResultsState) DOM.noResultsState.style.display = 'flex';
+    } else if (state === 'results') {
+        if (DOM.resultsHeader) DOM.resultsHeader.style.display = 'flex';
+        if (currentView === 'cards') {
+            if (DOM.resultsContainer) DOM.resultsContainer.style.display = 'flex';
+            if (DOM.tableResultsContainer) DOM.tableResultsContainer.style.display = 'none';
+        } else {
+            if (DOM.resultsContainer) DOM.resultsContainer.style.display = 'none';
+            if (DOM.tableResultsContainer) DOM.tableResultsContainer.style.display = 'block';
+        }
     }
 }
 
@@ -616,10 +621,10 @@ function createResultCard(shell, index, isMachiningMode) {
                     }
                 </div>
                 <div class="card-job">
-                    <span class="job-highlight-badge prominent">JOB # ${escHtml(shell.job_number || '—')}</span>
+                    <span class="job-highlight-badge prominent">JOB # ${escHtml(shell.job_number || '—')}${shell.piece_number ? ` <span class="job-piece-tag">· Pc ${escHtml(shell.piece_number)}</span>` : ''}</span>
                 </div>
                 <div class="card-meta-chips">
-                    ${shell.piece_number ? `<span class="meta-chip"><strong>Pc:</strong> ${escHtml(shell.piece_number)}</span>` : ''}
+                    ${shell.piece_number ? `<span class="meta-chip meta-chip-piece"><strong>Piece:</strong> ${escHtml(shell.piece_number)}</span>` : ''}
                     ${shell.lot_number ? `<span class="meta-chip"><strong>Lot:</strong> #${shell.lot_number}</span>` : ''}
                     ${shell.cast_date ? `<span class="meta-chip meta-chip-date" title="Actual Shifting / Casting Date">📅 ${escHtml(shell.cast_date)}</span>` : ''}
                     ${shell.actual_weight ? `<span class="meta-chip meta-chip-weight"><strong>Act Wt:</strong> ${shell.actual_weight.toLocaleString()} kg</span>` : (shell.weight ? `<span class="meta-chip"><strong>Wt:</strong> ${shell.weight.toLocaleString()} kg</span>` : '')}
