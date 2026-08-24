@@ -179,76 +179,202 @@ def parse_casting_log(filepath: Path | str, year: int = 2025) -> list[dict]:
     sheet = wb[target_sheet]
     log.info(f"Parsing sheet: '{target_sheet}'...")
 
+    rows = list(sheet.iter_rows(values_only=True))
+
+    header_keywords = [
+        "job no", "job #", "idm", "sr", "drawing", "finish", "casted",
+        "piece", "name", "month", "lot", "od", "id", "length", "size"
+    ]
+
+    header_rows_idx = []
+    for r_idx in range(min(6, len(rows))):
+        row = rows[r_idx]
+        row_vals = [str(v or "").strip() for v in row]
+        row_str = " ".join(row_vals).lower()
+        has_real_job = any(re.match(r"^[A-Za-z0-9]{2,4}-[A-Za-z0-9]{3,5}-\d{4}", v) for v in row_vals if v)
+        if has_real_job:
+            break
+        if any(k in row_str for k in header_keywords):
+            header_rows_idx.append(r_idx)
+        elif header_rows_idx:
+            break
+
+    col_map = {
+        "month": 0, "lot_number": 1, "serial": 2, "idm": 3, "job_number": 4,
+        "name": 5, "drawing": 6, "shell_type": 7, "piece": 8,
+        "finish_od": 9, "finish_id": 10, "finish_length": 11,
+        "cast_od": 12, "cast_id": 13, "cast_length": 14,
+        "pattern_ca": 15, "core_box": 20, "riser_pct": 24, "simulation_path": 27,
+        "calc_weight": 28, "job_card_weight": 34, "weight_diff": 40, "actual_weight": 41,
+        "cast_date": 42, "mat_standard": 43, "technology": 44, "shaft_fitting": 45,
+        "core_process": 46, "mold_process": 47,
+    }
+
+    for hr in header_rows_idx:
+        row = rows[hr]
+        for c, val in enumerate(row):
+            v = str(val or "").strip().replace("\n", " ").lower()
+            if "month" in v: col_map["month"] = c
+            elif "lot" in v and "wt" not in v: col_map["lot_number"] = c
+            elif "sr" in v and "job" not in v: col_map["serial"] = c
+            elif "idm" in v: col_map["idm"] = c
+            elif "job no" in v or "job #" in v or (v.startswith("job") and "wt" not in v and "card" not in v): col_map["job_number"] = c
+            elif (v == "name" or "shell name" in v or "item name" in v) and "drawing" not in v: col_map["name"] = c
+            elif "drawing" in v: col_map["drawing"] = c
+            elif "type" in v and "shell" in v: col_map["shell_type"] = c
+            elif "piece" in v: col_map["piece"] = c
+            elif ("actual wt" in v or "act wt" in v or "act. wt" in v or v == "actual") and "cage" not in v: col_map["actual_weight"] = c
+            elif "job card wt" in v or "card wt" in v or (v.startswith("wt") and "cage" not in v): col_map["job_card_weight"] = c
+            elif "calc" in v and "wt" in v: col_map["calc_weight"] = c
+            elif "pattern" in v: col_map["pattern_ca"] = c
+            elif "core box" in v: col_map["core_box"] = c
+            elif "riser" in v: col_map["riser_pct"] = c
+
+    # Find Finish & Casted dimensional column bounds
+    finish_start, cast_start = None, None
+    for hr in header_rows_idx:
+        row = rows[hr]
+        for c, val in enumerate(row):
+            v = str(val or "").strip().replace("\n", " ").lower()
+            if "finish" in v and finish_start is None: finish_start = c
+            elif "cast" in v and cast_start is None: cast_start = c
+
+    for hr in header_rows_idx:
+        row = rows[hr]
+        r_vals = [str(v or "").strip().replace("\n", " ").lower() for v in row]
+        if finish_start is not None:
+            end_f = cast_start if cast_start is not None else finish_start + 4
+            for c in range(finish_start, min(end_f, len(r_vals))):
+                v2 = r_vals[c]
+                if v2 == "od": col_map["finish_od"] = c
+                elif v2 == "id": col_map["finish_id"] = c
+                elif "len" in v2 or "length" in v2: col_map["finish_length"] = c
+
+        if cast_start is not None:
+            end_c = cast_start + 4
+            for c in range(cast_start, min(end_c, len(r_vals))):
+                v2 = r_vals[c]
+                if v2 == "od": col_map["cast_od"] = c
+                elif v2 == "id": col_map["cast_id"] = c
+                elif "len" in v2 or "length" in v2: col_map["cast_length"] = c
+
+    data_start = max(header_rows_idx) + 1 if header_rows_idx else 2
     records = []
     consecutive_empty = 0
+    current_lot = None
+    current_month = None
 
-    for row_idx, row in enumerate(sheet.iter_rows(values_only=True)):
-        # Skip header rows (rows 0 and 1)
-        if row_idx < 2:
-            continue
-
+    for row_idx in range(data_start, len(rows)):
+        row = rows[row_idx]
         if not any(row):
             consecutive_empty += 1
             if consecutive_empty > 20:
-                # Stop parsing once we hit the end of table data
                 break
             continue
 
         consecutive_empty = 0
 
-        # Primary Job Number (Col 4)
-        job_raw = row[4] if len(row) > 4 else None
+        job_col = col_map.get("job_number", 4)
+        job_raw = row[job_col] if len(row) > job_col else None
         job_number = normalize_job_number(job_raw)
-        if not job_number:
+        if not job_number or job_number.upper() in ["JOB NO", "JOB #", "JOB", "NONE", "SR", "IDM"]:
             continue
 
-        shell_name = safe_str(row[5]) if len(row) > 5 else None
-        if not shell_name:
+        name_col = col_map.get("name", 5)
+        shell_name = safe_str(row[name_col]) if len(row) > name_col else None
+        if not shell_name or shell_name.lower() in ["name", "item name", "shell name", "temp"]:
             continue
 
-        month = normalize_month(safe_str(row[0])) if len(row) > 0 else None
-        lot_number = safe_int(row[1]) if len(row) > 1 else None
-        serial_number = safe_int(row[2]) if len(row) > 2 else None
-        idm_number = safe_str(row[3]) if len(row) > 3 else None
-        drawing_number = safe_str(row[6]) if len(row) > 6 else None
-        shell_type = safe_str(row[7]) if len(row) > 7 else None
-        piece_number = normalize_piece_number(safe_str(row[8])) if len(row) > 8 else None
+        # Handle inverted IDM and Job Number columns in irregular sheets
+        if "IDM" in job_number.upper() and re.match(r"^[A-Za-z0-9]{2,4}-[A-Za-z0-9]{3,5}-\d{4}", shell_name):
+            job_number = shell_name
+            shell_name = "Mill Roller Shell"
+
+        # Forward fill lot and month
+        lot_col = col_map.get("lot_number", 1)
+        raw_lot = safe_int(row[lot_col]) if len(row) > lot_col else None
+        if raw_lot is not None and raw_lot > 0:
+            current_lot = raw_lot
+        lot_number = current_lot
+
+        month_col = col_map.get("month", 0)
+        raw_m = normalize_month(safe_str(row[month_col])) if len(row) > month_col else None
+        if raw_m:
+            current_month = raw_m
+        month = current_month
+
+        ser_col = col_map.get("serial", 2)
+        serial_number = safe_int(row[ser_col]) if len(row) > ser_col else None
+        idm_col = col_map.get("idm", 3)
+        idm_number = safe_str(row[idm_col]) if len(row) > idm_col else None
+        draw_col = col_map.get("drawing", 6)
+        drawing_number = safe_str(row[draw_col]) if len(row) > draw_col else None
+        type_col = col_map.get("shell_type", 7)
+        shell_type = safe_str(row[type_col]) if len(row) > type_col else None
+        pc_col = col_map.get("piece", 8)
+        piece_number = normalize_piece_number(safe_str(row[pc_col])) if len(row) > pc_col else None
 
         # Dimensions
-        finish_od = safe_float(row[9]) if len(row) > 9 else None
-        finish_id = safe_float(row[10]) if len(row) > 10 else None
-        finish_len = safe_float(row[11]) if len(row) > 11 else None
+        fod_c = col_map.get("finish_od", 9)
+        fid_c = col_map.get("finish_id", 10)
+        flen_c = col_map.get("finish_length", 11)
+        finish_od = safe_float(row[fod_c]) if len(row) > fod_c else None
+        finish_id = safe_float(row[fid_c]) if len(row) > fid_c else None
+        finish_len = safe_float(row[flen_c]) if len(row) > flen_c else None
 
-        cast_od = safe_float(row[12]) if len(row) > 12 else None
-        cast_id = safe_float(row[13]) if len(row) > 13 else None
-        cast_len = safe_float(row[14]) if len(row) > 14 else None
+        cod_c = col_map.get("cast_od", 12)
+        cid_c = col_map.get("cast_id", 13)
+        clen_c = col_map.get("cast_length", 14)
+        cast_od = safe_float(row[cod_c]) if len(row) > cod_c else None
+        cast_id = safe_float(row[cid_c]) if len(row) > cid_c else None
+        cast_len = safe_float(row[clen_c]) if len(row) > clen_c else None
+
+        # Filter out rows with non-shell / template dimensions
+        if finish_od is not None and finish_od <= 50:
+            finish_od = None
+        if cast_od is not None and cast_od <= 50:
+            cast_od = None
 
         wall_thickness = calculate_wall_thickness(finish_od, finish_id)
         cast_wall_thickness = calculate_wall_thickness(cast_od, cast_id)
 
         # Tooling & Pattern
-        pattern_ca = safe_float(row[15]) if len(row) > 15 else None
-        core_box = safe_float(row[20]) if len(row) > 20 else None
-        riser_pct = safe_float(row[24]) if len(row) > 24 else None
-        simulation_path = safe_str(row[27]) if len(row) > 27 else None
+        pat_c = col_map.get("pattern_ca", 15)
+        cb_c = col_map.get("core_box", 20)
+        riser_c = col_map.get("riser_pct", 24)
+        sim_c = col_map.get("simulation_path", 27)
+        pattern_ca = safe_float(row[pat_c]) if len(row) > pat_c else None
+        core_box = safe_float(row[cb_c]) if len(row) > cb_c else None
+        riser_pct = safe_float(row[riser_c]) if len(row) > riser_c else None
+        simulation_path = safe_str(row[sim_c]) if len(row) > sim_c else None
 
         # Weights (kg)
-        calculated_weight = safe_float(row[28]) if len(row) > 28 else None
-        job_card_weight = safe_float(row[34]) if len(row) > 34 else None
-        weight_diff = safe_float(row[40]) if len(row) > 40 else None
-        actual_weight = safe_float(row[41]) if len(row) > 41 else None
+        calc_c = col_map.get("calc_weight", 28)
+        jc_c = col_map.get("job_card_weight", 34)
+        wd_c = col_map.get("weight_diff", 40)
+        act_c = col_map.get("actual_weight", 41)
+        calculated_weight = safe_float(row[calc_c]) if len(row) > calc_c else None
+        job_card_weight = safe_float(row[jc_c]) if len(row) > jc_c else None
+        weight_diff = safe_float(row[wd_c]) if len(row) > wd_c else None
+        actual_weight = safe_float(row[act_c]) if len(row) > act_c else None
 
         # If weight_diff is not explicitly recorded but actual & job card are present, calculate it
         if weight_diff is None and actual_weight is not None and job_card_weight is not None:
             weight_diff = round(actual_weight - job_card_weight, 2)
 
         # Casting Date & Foundry Tech
-        cast_date = format_date_str(row[42]) if len(row) > 42 else None
-        mat_standard = safe_str(row[43]) if len(row) > 43 else None
-        technology = safe_str(row[44]) if len(row) > 44 else None
-        shaft_fitting = safe_str(row[45]) if len(row) > 45 else None
-        core_process = normalize_process_name(safe_str(row[46])) if len(row) > 46 else None
-        mold_process = normalize_process_name(safe_str(row[47])) if len(row) > 47 else None
+        dt_c = col_map.get("cast_date", 42)
+        mat_c = col_map.get("mat_standard", 43)
+        tech_c = col_map.get("technology", 44)
+        shaft_c = col_map.get("shaft_fitting", 45)
+        core_c = col_map.get("core_process", 46)
+        mold_c = col_map.get("mold_process", 47)
+        cast_date = format_date_str(row[dt_c]) if len(row) > dt_c else None
+        mat_standard = safe_str(row[mat_c]) if len(row) > mat_c else None
+        technology = safe_str(row[tech_c]) if len(row) > tech_c else None
+        shaft_fitting = safe_str(row[shaft_c]) if len(row) > shaft_c else None
+        core_process = normalize_process_name(safe_str(row[core_c])) if len(row) > core_c else None
+        mold_process = normalize_process_name(safe_str(row[mold_c])) if len(row) > mold_c else None
 
         record = {
             "month": month,

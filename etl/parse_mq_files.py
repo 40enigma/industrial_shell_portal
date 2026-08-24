@@ -294,19 +294,24 @@ def parse_single_mq_workbook(filepath: Path, lot_dir_name: str, year: int = 2025
         job_raw = get_cell(row_idx, col_map.get("job_number", 4))
         job_number = normalize_job_number(job_raw)
 
-        if not job_number:
+        if not job_number or job_number.upper() in ["JOB NO", "JOB #", "JOB", "NONE", "SR", "IDM", "NAME", "LOT"]:
             continue
 
         name_raw = safe_str(get_cell(row_idx, col_map.get("name", 5)))
-        if not name_raw:
+        if not name_raw or name_raw.lower() in ["name", "item name", "shell name", "temp", "drawing"]:
             continue
+
+        # Handle inverted IDM and Job Number columns in irregular sheets
+        if "IDM" in job_number.upper() and re.match(r"^[A-Za-z0-9]{2,4}-[A-Za-z0-9]{3,5}-\d{4}", name_raw):
+            job_number = name_raw
+            name_raw = "Mill Roller Shell"
 
         od = safe_float(get_cell(row_idx, col_map.get("finish_od", 12)))
         id_dim = safe_float(get_cell(row_idx, col_map.get("finish_id", 13)))
         length = safe_float(get_cell(row_idx, col_map.get("finish_length", 14)))
 
-        # Filter out zero-dimension template rows
-        if od is None or od <= 0 or length is None or length <= 0:
+        # Filter out zero-dimension template rows or non-shell dimensions (< 50mm)
+        if od is None or od <= 50 or length is None or length <= 50:
             continue
 
         cast_od = safe_float(get_cell(row_idx, col_map.get("cast_od", 15)))

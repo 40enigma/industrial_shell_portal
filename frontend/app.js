@@ -972,7 +972,7 @@ function render2DSVG(shell) {
         <svg viewBox="0 0 300 280" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
             <defs>
                 <pattern id="hatchPattern" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
-                    <line x1="0" y1="0" x2="0" y2="8" stroke="rgba(59, 130, 246, 0.45)" stroke-width="1.8"/>
+                    <line x1="0" y1="0" x2="0" y2="8" stroke="rgba(245, 158, 11, 0.45)" stroke-width="1.8"/>
                 </pattern>
                 <pattern id="finishHatch" width="6" height="6" patternTransform="rotate(-45 0 0)" patternUnits="userSpaceOnUse">
                     <line x1="0" y1="0" x2="0" y2="6" stroke="rgba(16, 185, 129, 0.4)" stroke-width="1.2"/>
@@ -980,17 +980,17 @@ function render2DSVG(shell) {
             </defs>
 
             <!-- Center Axes -->
-            <line x1="20" y1="140" x2="280" y2="140" stroke="rgba(148, 163, 184, 0.15)" stroke-dasharray="3 3"/>
-            <line x1="150" y1="20" x2="150" y2="260" stroke="rgba(148, 163, 184, 0.15)" stroke-dasharray="3 3"/>
+            <line x1="20" y1="140" x2="280" y2="140" stroke="rgba(255, 255, 255, 0.12)" stroke-dasharray="3 3"/>
+            <line x1="150" y1="20" x2="150" y2="260" stroke="rgba(255, 255, 255, 0.12)" stroke-dasharray="3 3"/>
 
             <!-- Cast Outer Body -->
-            <circle cx="150" cy="140" r="${rCastOd}" fill="url(#hatchPattern)" stroke="#3b82f6" stroke-width="2"/>
+            <circle cx="150" cy="140" r="${rCastOd}" fill="url(#hatchPattern)" stroke="#f59e0b" stroke-width="2"/>
 
             <!-- Finished Machined Boundary (Overlay) -->
             <circle cx="150" cy="140" r="${rFinishOd}" fill="url(#finishHatch)" stroke="#10b981" stroke-width="2" stroke-dasharray="4 2"/>
 
             <!-- Finish Inner Bore -->
-            <circle cx="150" cy="140" r="${rFinishId}" fill="rgba(9, 13, 22, 0.95)" stroke="#10b981" stroke-width="1.5" stroke-dasharray="3 2"/>
+            <circle cx="150" cy="140" r="${rFinishId}" fill="rgba(12, 13, 18, 0.95)" stroke="#10b981" stroke-width="1.5" stroke-dasharray="3 2"/>
 
             <!-- Raw Cast Bore Void -->
             <circle cx="150" cy="140" r="${rCastId}" fill="#090d16" stroke="#3b82f6" stroke-width="1.5"/>

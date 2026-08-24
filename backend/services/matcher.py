@@ -334,6 +334,7 @@ def search_shells(
 
         results.append({
             "id": shell.id,
+            "data_year": shell.data_year,
             "job_number": shell.job_number,
             "piece_number": shell.piece_number,
             "shell_name": shell.shell_name,
