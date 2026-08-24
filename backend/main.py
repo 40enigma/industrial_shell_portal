@@ -5,6 +5,7 @@ Configures CORS, mounts static files for the frontend SPA,
 and includes all API routers: Search, Documents, Analytics, Upload.
 """
 import sys
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -22,18 +23,25 @@ from backend.routes.upload import router as upload_router
 from backend.routes.analytics import router as analytics_router
 from database.db import init_db
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize database tables on startup."""
+    init_db()
+    yield
+
+
 app = FastAPI(
     title="Qadri Group — Industrial Shell Data Retrieval, Casting Envelope & Quality Intelligence Portal",
     description="Qadri Group foundry shell retrieval, casting stock envelope calculator, defect analytics, and multi-year ingestion portal.",
     version="3.5.0",
+    lifespan=lifespan,
 )
 
 # CORS — restricted in production, permissive in development
 ALLOWED_ORIGINS = ["*"] if DEBUG else [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
-    # Add your production domain(s) here, e.g.:
-    # "https://portal.yourcompany.com",
 ]
 
 app.add_middleware(
@@ -52,12 +60,6 @@ app.include_router(analytics_router)
 
 # Mount frontend static files
 app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
-
-
-@app.on_event("startup")
-def on_startup():
-    """Initialize database tables on start."""
-    init_db()
 
 
 @app.get("/", include_in_schema=False)

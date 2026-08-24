@@ -2459,7 +2459,11 @@ body {
     color: #60a5fa;
 }
 
-/* --- Responsive --- */
+/* ============================================================
+   Responsive Breakpoints — Mobile-First Overrides
+   ============================================================ */
+
+/* ── 1400px: Compact desktop ── */
 @media (max-width: 1400px) {
     .header {
         padding: 0 1rem;
@@ -2467,9 +2471,9 @@ body {
     .header-inner {
         gap: 0.75rem;
     }
-    .nav-tab {
-        padding: 6px 10px;
-        font-size: 0.75rem;
+    .nav-link-btn {
+        padding: 6px 12px;
+        font-size: 0.78rem;
     }
     .stat-chip {
         min-width: 56px;
@@ -2483,12 +2487,13 @@ body {
     }
 }
 
+/* ── 1200px: Tablet landscape ── */
 @media (max-width: 1200px) {
     .search-layout, .ingestion-layout, .analytics-charts-grid {
         grid-template-columns: 1fr;
     }
     .analytics-kpi-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(3, 1fr);
     }
     .lot-heatmap-grid {
         grid-template-columns: repeat(6, 1fr);
@@ -2502,17 +2507,27 @@ body {
     .mech-props-grid {
         grid-template-columns: repeat(2, 1fr);
     }
+    .dossier-result-layout {
+        grid-template-columns: 1fr;
+    }
+    .nav-link-btn {
+        padding: 6px 10px;
+        font-size: 0.75rem;
+    }
+    .nav-link-btn svg {
+        width: 13px;
+        height: 13px;
+    }
 }
 
+/* ── 900px: Tablet portrait ── */
 @media (max-width: 900px) {
     .header-inner {
         justify-content: center;
     }
-    .nav-tabs {
-        justify-content: center;
-    }
     .header-stats {
         justify-content: center;
+        flex-wrap: wrap;
     }
     .main-container {
         padding: 1rem;
@@ -2526,34 +2541,110 @@ body {
     .casting-monthly-grid {
         gap: 4px;
     }
+    /* Nav links: hide text, show icons only */
+    .nav-link-group {
+        gap: 4px;
+        padding: 3px;
+    }
+    .nav-link-btn {
+        font-size: 0;
+        padding: 8px 10px;
+        gap: 0;
+    }
+    .nav-link-btn svg {
+        width: 16px;
+        height: 16px;
+        display: block;
+    }
+    /* Results toolbar: wrap actions */
+    .results-header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+    .results-actions {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    /* Chart card header: wrap */
+    .chart-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    /* Heatmap legend wrap */
+    .heatmap-legend {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    /* Segmented control: 2×2 grid */
+    .segmented-control.mode-grid-4 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px;
+    }
+    /* Analytics tables: horizontal scroll */
+    .alloy-table-container,
+    .batch-history-card {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .alloy-table-container .analytics-table,
+    .batch-history-card .analytics-table {
+        min-width: 520px;
+    }
+    /* Dossier search input stacking */
+    .dossier-search-input-group {
+        flex-direction: column;
+    }
+    .dossier-search-input-group .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    .dossier-search-card {
+        padding: 1.25rem;
+    }
 }
 
+/* ── 768px: Large phone / small tablet ── */
 @media (max-width: 768px) {
     .header-inner {
         flex-direction: column;
         height: auto;
         padding: 0.75rem 0;
-    }
-    .analytics-kpi-grid, .svg-modal-grid, .casting-process-grid {
-        grid-template-columns: 1fr;
-    }
-    .lot-heatmap-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
-    .casting-weights-grid {
-        grid-template-columns: 1fr;
-    }
-    .mech-props-grid {
-        grid-template-columns: 1fr 1fr;
-    }
-    .main-container {
-        padding: 0.75rem;
+        gap: 0.6rem;
     }
     .header {
         padding: 0 0.75rem;
     }
     .logo-title {
         font-size: 1rem;
+    }
+    .logo-subtitle {
+        font-size: 0.58rem;
+    }
+    .logo-icon-img {
+        width: 36px;
+        height: 36px;
+    }
+    /* KPI grid stacks to 2 columns */
+    .analytics-kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .svg-modal-grid, .casting-process-grid {
+        grid-template-columns: 1fr;
+    }
+    .lot-heatmap-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .casting-weights-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .mech-props-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .main-container {
+        padding: 0.75rem;
     }
     .search-grid {
         grid-template-columns: 1fr;
@@ -2564,29 +2655,122 @@ body {
     .allowances-grid {
         grid-template-columns: 1fr 1fr;
     }
+    /* Modals: fit viewport */
+    .modal {
+        max-width: 95vw;
+        max-height: 92vh;
+        border-radius: var(--radius-lg);
+    }
+    .modal.modal-extra-wide {
+        max-width: 95vw;
+    }
+    .modal-header {
+        padding: 1rem 1.25rem;
+    }
+    .modal-header h3 {
+        font-size: 0.95rem;
+    }
+    .modal-body {
+        padding: 1rem 1.25rem;
+    }
+    /* Modal subtabs: horizontal scroll */
+    .modal-subtabs {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 0 0.75rem;
+        gap: 0;
+    }
+    .modal-subtab {
+        white-space: nowrap;
+        flex-shrink: 0;
+        padding: 8px 12px;
+        font-size: 0.72rem;
+    }
+    /* View toggle & sort compact */
+    .view-toggle-group {
+        order: 2;
+    }
+    .sort-selector-wrapper {
+        order: 1;
+        flex: 1;
+        min-width: 0;
+    }
+    .sort-select {
+        font-size: 0.75rem;
+        max-width: 100%;
+    }
+    /* File select toolbar */
+    .file-select-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    /* Ingestion layout */
+    .ingestion-layout {
+        grid-template-columns: 1fr;
+    }
+    /* Monthly bar chart: shrink */
+    .casting-monthly-grid {
+        gap: 2px;
+        height: 150px;
+    }
+    .monthly-bar-track {
+        height: 90px;
+    }
+    .monthly-val-top {
+        font-size: 0.52rem;
+    }
+    .monthly-label-bot {
+        font-size: 0.6rem;
+    }
+    .monthly-count-sub {
+        font-size: 0.5rem;
+    }
+    /* Tolerance formula hint wrap */
+    .allowance-formula-hint {
+        font-size: 0.65rem;
+        word-break: break-word;
+    }
+    /* KPI card compact */
+    .kpi-card {
+        padding: 14px 12px;
+    }
+    .kpi-value {
+        font-size: 1.4rem;
+    }
+    /* Footer compact */
+    .footer {
+        padding: 1.5rem 0.75rem 1rem;
+        margin-top: 2rem;
+    }
 }
 
+/* ── 480px: Phone portrait ── */
 @media (max-width: 480px) {
     .header-inner {
         padding: 0.5rem 0;
-        gap: 0.5rem;
+        gap: 0.4rem;
     }
-    .nav-tab {
-        padding: 5px 8px;
-        font-size: 0.68rem;
+    .header {
+        padding: 0 0.5rem;
     }
-    .nav-tab svg {
-        display: none;
+    .nav-link-group {
+        gap: 2px;
+        padding: 2px;
+        border-radius: var(--radius-md);
+    }
+    .nav-link-btn {
+        padding: 7px 8px;
+        border-radius: var(--radius-sm);
     }
     .stat-chip {
-        min-width: 48px;
+        min-width: 44px;
         padding: 3px 6px;
     }
     .stat-value {
         font-size: 0.78rem;
     }
     .stat-label {
-        font-size: 0.52rem;
+        font-size: 0.5rem;
     }
     .card-dimensions {
         grid-template-columns: 1fr 1fr;
@@ -2594,11 +2778,92 @@ body {
     .lot-heatmap-grid {
         grid-template-columns: repeat(2, 1fr);
     }
+    /* KPI stacks to single column */
+    .analytics-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+    .casting-weights-grid {
+        grid-template-columns: 1fr;
+    }
+    .mech-props-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    /* Modal full-screen feel */
     .modal {
         border-radius: var(--radius-md);
+        max-height: 95vh;
     }
     .modal-body {
-        padding: 1rem;
+        padding: 0.75rem 1rem;
+    }
+    .modal-overlay {
+        padding: 0.5rem;
+    }
+    /* SVG canvas shrink */
+    .svg-canvas-container {
+        height: 200px;
+    }
+    /* Segmented control: full width buttons */
+    .segmented-control.mode-grid-4 {
+        grid-template-columns: 1fr 1fr;
+    }
+    .segment-btn {
+        font-size: 0.72rem;
+        padding: 6px 8px;
+    }
+    /* Search panel compact */
+    .search-panel {
+        padding: 1.25rem;
+    }
+    .search-panel-header {
+        flex-direction: column;
+        gap: 8px;
+        align-items: flex-start;
+    }
+    /* Allowances grid stack */
+    .allowances-grid {
+        grid-template-columns: 1fr;
+    }
+    /* Table results scroll */
+    .table-results-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    /* Button text compact */
+    .btn-search {
+        font-size: 0.82rem;
+        padding: 12px 16px;
+    }
+    /* Toast compact */
+    .toast-container {
+        right: 12px;
+        bottom: 12px;
+        left: 12px;
+    }
+    .toast {
+        min-width: unset;
+        max-width: 100%;
+    }
+    /* Footer minimal */
+    .footer {
+        padding: 1rem 0.5rem 0.75rem;
+        margin-top: 1.5rem;
+        font-size: 0.65rem;
+    }
+    /* Section titles compact */
+    .section-title {
+        font-size: 0.9rem;
+    }
+    .chart-card-title {
+        font-size: 0.85rem;
+    }
+    .chart-card-sub {
+        font-size: 0.68rem;
+    }
+    /* CLI info box overflow fix */
+    .cli-info-box code {
+        word-break: break-all;
+        font-size: 0.68rem;
     }
 }
 

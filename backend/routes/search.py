@@ -312,7 +312,7 @@ def stats(db: Session = Depends(get_db)):
     cast_count = db.query(Document).filter(Document.doc_type == "CASTING_LOG").count()
     qdr_ext = db.query(Document).filter(Document.doc_type == "QDR_EXTERNAL").count()
     qdr_int = db.query(Document).filter(Document.doc_type == "QDR_INTERNAL").count()
-    available = db.query(Document).filter(Document.is_available == True).count()
+    available = db.query(Document).filter(Document.is_available.is_(True)).count()
     linked = db.query(Document).filter(Document.status == "LINKED").count()
     unlinked = db.query(Document).filter(Document.status == "UNLINKED").count()
 

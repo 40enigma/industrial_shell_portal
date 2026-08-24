@@ -221,6 +221,7 @@ function setupTabNavigation() {
 
 // ── Mode Switcher & Form Controls ──────────────────────────
 function setupModeSwitcher() {
+    if (!DOM.modeButtons || DOM.modeButtons.length === 0) return;
     DOM.modeButtons.forEach(btn => {
         btn.addEventListener('click', () => {
             DOM.modeButtons.forEach(b => b.classList.remove('active'));
@@ -228,14 +229,16 @@ function setupModeSwitcher() {
             currentMode = btn.dataset.mode;
 
             if (currentMode === 'envelope') {
-                DOM.envelopeAllowancesBox.style.display = 'block';
-                DOM.toleranceSliderRow.style.display = 'none';
-                DOM.dimensionPanelTitle.textContent = 'Required Machined Finish Targets';
+                if (DOM.envelopeAllowancesBox) DOM.envelopeAllowancesBox.style.display = 'block';
+                if (DOM.toleranceSliderRow) DOM.toleranceSliderRow.style.display = 'none';
+                if (DOM.dimensionPanelTitle) DOM.dimensionPanelTitle.textContent = 'Required Machined Finish Targets';
             } else {
-                DOM.envelopeAllowancesBox.style.display = 'none';
-                DOM.toleranceSliderRow.style.display = 'block';
-                DOM.dimensionPanelTitle.textContent =
-                    currentMode === 'casted' ? 'Target As-Cast Dimensions' : 'Target Finish Dimensions';
+                if (DOM.envelopeAllowancesBox) DOM.envelopeAllowancesBox.style.display = 'none';
+                if (DOM.toleranceSliderRow) DOM.toleranceSliderRow.style.display = 'block';
+                if (DOM.dimensionPanelTitle) {
+                    DOM.dimensionPanelTitle.textContent =
+                        currentMode === 'casted' ? 'Target As-Cast Dimensions' : 'Target Finish Dimensions';
+                }
             }
 
             if (currentSearchResults.length > 0) performSearch();
@@ -245,60 +248,69 @@ function setupModeSwitcher() {
 
 function setupEventListeners() {
     // Advanced Drawer Toggle
-    DOM.btnToggleAdv.addEventListener('click', () => {
-        const isHidden = DOM.advDrawer.style.display === 'none';
-        DOM.advDrawer.style.display = isHidden ? 'block' : 'none';
-        DOM.btnToggleAdv.classList.toggle('open', isHidden);
-    });
+    if (DOM.btnToggleAdv && DOM.advDrawer) {
+        DOM.btnToggleAdv.addEventListener('click', () => {
+            const isHidden = DOM.advDrawer.style.display === 'none';
+            DOM.advDrawer.style.display = isHidden ? 'block' : 'none';
+            DOM.btnToggleAdv.classList.toggle('open', isHidden);
+        });
+    }
 
     // View Switcher (Cards vs Table)
-    DOM.btnViewCards.addEventListener('click', () => {
-        currentView = 'cards';
-        DOM.btnViewCards.classList.add('active');
-        DOM.btnViewTable.classList.remove('active');
-        DOM.resultsContainer.style.display = 'flex';
-        DOM.tableResultsContainer.style.display = 'none';
-        if (DOM.resultsContainer.children.length === 0 && currentSearchResults.length > 0) {
-            currentSearchResults.forEach((shell, index) => {
-                const card = createResultCard(shell, index, currentMode === 'envelope');
-                DOM.resultsContainer.appendChild(card);
-            });
-        }
-    });
+    if (DOM.btnViewCards && DOM.btnViewTable && DOM.resultsContainer && DOM.tableResultsContainer) {
+        DOM.btnViewCards.addEventListener('click', () => {
+            currentView = 'cards';
+            DOM.btnViewCards.classList.add('active');
+            DOM.btnViewTable.classList.remove('active');
+            DOM.resultsContainer.style.display = 'flex';
+            DOM.tableResultsContainer.style.display = 'none';
+            if (DOM.resultsContainer.children.length === 0 && currentSearchResults.length > 0) {
+                currentSearchResults.forEach((shell, index) => {
+                    const card = createResultCard(shell, index, currentMode === 'envelope');
+                    DOM.resultsContainer.appendChild(card);
+                });
+            }
+        });
 
-    DOM.btnViewTable.addEventListener('click', () => {
-        currentView = 'table';
-        DOM.btnViewTable.classList.add('active');
-        DOM.btnViewCards.classList.remove('active');
-        DOM.resultsContainer.style.display = 'none';
-        DOM.tableResultsContainer.style.display = 'block';
-        if (currentSearchResults.length > 0) renderDenseTable(currentSearchResults);
-    });
+        DOM.btnViewTable.addEventListener('click', () => {
+            currentView = 'table';
+            DOM.btnViewTable.classList.add('active');
+            DOM.btnViewCards.classList.remove('active');
+            DOM.resultsContainer.style.display = 'none';
+            DOM.tableResultsContainer.style.display = 'block';
+            if (currentSearchResults.length > 0) renderDenseTable(currentSearchResults);
+        });
+    }
 
     // Sorting
-    DOM.selectSortBy.addEventListener('change', (e) => {
-        currentSortBy = e.target.value;
-        if (currentSearchResults.length > 0) performSearch();
-    });
+    if (DOM.selectSortBy) {
+        DOM.selectSortBy.addEventListener('change', (e) => {
+            currentSortBy = e.target.value;
+            if (currentSearchResults.length > 0) performSearch();
+        });
+    }
 
-    DOM.btnSortOrder.addEventListener('click', () => {
-        currentSortOrder = (currentSortOrder === 'desc') ? 'asc' : 'desc';
-        DOM.sortOrderIcon.textContent = (currentSortOrder === 'desc') ? '▼' : '▲';
-        if (currentSearchResults.length > 0) performSearch();
-    });
+    if (DOM.btnSortOrder && DOM.sortOrderIcon) {
+        DOM.btnSortOrder.addEventListener('click', () => {
+            currentSortOrder = (currentSortOrder === 'desc') ? 'asc' : 'desc';
+            DOM.sortOrderIcon.textContent = (currentSortOrder === 'desc') ? '▼' : '▲';
+            if (currentSearchResults.length > 0) performSearch();
+        });
+    }
 
     // Search Trigger
-    DOM.btnSearch.addEventListener('click', performSearch);
-    DOM.btnExportCsv.addEventListener('click', exportToCSV);
-    DOM.btnClear.addEventListener('click', clearSearchForm);
-    DOM.inputTolerance.addEventListener('input', updateToleranceDisplay);
+    if (DOM.btnSearch) DOM.btnSearch.addEventListener('click', performSearch);
+    if (DOM.btnExportCsv) DOM.btnExportCsv.addEventListener('click', exportToCSV);
+    if (DOM.btnClear) DOM.btnClear.addEventListener('click', clearSearchForm);
+    if (DOM.inputTolerance) DOM.inputTolerance.addEventListener('input', updateToleranceDisplay);
 
     // Enter Key Search
     const searchInputs = [
         DOM.inputOd, DOM.inputId, DOM.inputLength, DOM.inputJob,
         DOM.inputOdAllowance, DOM.inputIdAllowance, DOM.inputFaceAllowance,
         DOM.inputWt, DOM.inputMinWeight, DOM.inputMaxWeight, DOM.inputGlobalQuery
-    ];
+    ].filter(Boolean);
+
     searchInputs.forEach(input => {
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') performSearch();
@@ -306,21 +318,24 @@ function setupEventListeners() {
     });
 
     // Modal Subtabs
-    DOM.modalSubtabs.forEach(btn => {
-        btn.addEventListener('click', () => {
-            DOM.modalSubtabs.forEach(b => b.classList.remove('active'));
-            DOM.modalSubtabPanes.forEach(p => p.classList.remove('active'));
-            btn.classList.add('active');
-            document.getElementById(btn.dataset.subtab).classList.add('active');
+    if (DOM.modalSubtabs && DOM.modalSubtabs.length > 0) {
+        DOM.modalSubtabs.forEach(btn => {
+            btn.addEventListener('click', () => {
+                DOM.modalSubtabs.forEach(b => b.classList.remove('active'));
+                DOM.modalSubtabPanes.forEach(p => p.classList.remove('active'));
+                btn.classList.add('active');
+                const targetSubtab = document.getElementById(btn.dataset.subtab);
+                if (targetSubtab) targetSubtab.classList.add('active');
+            });
         });
-    });
+    }
 
     // Modals Close
-    if (DOM.specsModalClose) DOM.specsModalClose.addEventListener('click', () => DOM.specsModalOverlay.style.display = 'none');
+    if (DOM.specsModalClose && DOM.specsModalOverlay) DOM.specsModalClose.addEventListener('click', () => DOM.specsModalOverlay.style.display = 'none');
     if (DOM.specsModalOverlay) DOM.specsModalOverlay.addEventListener('click', (e) => {
         if (e.target === DOM.specsModalOverlay) DOM.specsModalOverlay.style.display = 'none';
     });
-    if (DOM.modalClose) DOM.modalClose.addEventListener('click', () => DOM.modalOverlay.style.display = 'none');
+    if (DOM.modalClose && DOM.modalOverlay) DOM.modalClose.addEventListener('click', () => DOM.modalOverlay.style.display = 'none');
     if (DOM.modalOverlay) DOM.modalOverlay.addEventListener('click', (e) => {
         if (e.target === DOM.modalOverlay) DOM.modalOverlay.style.display = 'none';
     });
@@ -1744,6 +1759,7 @@ function renderLotHeatmap(lotList) {
 function setupIngestionUpload() {
     const dropZone = DOM.dropZone;
     const fileInput = DOM.inputArchiveFile;
+    if (!dropZone || !fileInput) return;
 
     ['dragenter', 'dragover'].forEach(name => {
         dropZone.addEventListener(name, (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
@@ -1762,16 +1778,18 @@ function setupIngestionUpload() {
         if (fileInput.files.length > 0) handleSelectedFile(fileInput.files[0]);
     });
 
-    DOM.btnRemoveFile.addEventListener('click', (e) => {
-        e.stopPropagation();
-        fileInput.value = '';
-        DOM.selectedFileInfo.style.display = 'none';
-        DOM.dropZone.style.display = 'block';
-        DOM.btnSubmitUpload.disabled = true;
-    });
+    if (DOM.btnRemoveFile) {
+        DOM.btnRemoveFile.addEventListener('click', (e) => {
+            e.stopPropagation();
+            fileInput.value = '';
+            if (DOM.selectedFileInfo) DOM.selectedFileInfo.style.display = 'none';
+            if (DOM.dropZone) DOM.dropZone.style.display = 'block';
+            if (DOM.btnSubmitUpload) DOM.btnSubmitUpload.disabled = true;
+        });
+    }
 
-    DOM.formUploadArchive.addEventListener('submit', handleUploadSubmit);
-    DOM.btnRefreshHistory.addEventListener('click', loadBatchHistory);
+    if (DOM.formUploadArchive) DOM.formUploadArchive.addEventListener('submit', handleUploadSubmit);
+    if (DOM.btnRefreshHistory) DOM.btnRefreshHistory.addEventListener('click', loadBatchHistory);
 }
 
 function handleSelectedFile(file) {
@@ -1874,21 +1892,23 @@ async function loadBatchHistory() {
         if (!res.ok) return;
         const history = await res.json();
 
-        DOM.batchHistoryTableBody.innerHTML = history.map(b => `
-            <tr>
-                <td>#${b.id}</td>
-                <td><strong>${b.year}</strong></td>
-                <td>${escHtml(b.filename || 'Archive')}</td>
-                <td>${b.total_shells}</td>
-                <td>${b.total_documents}</td>
-                <td>
-                    <span class="dim-delta-tag ${b.status === 'COMPLETED' ? 'dim-delta-tight' : 'dim-delta-medium'}">
-                        ${b.status}
-                    </span>
-                </td>
-                <td>${b.uploaded_at}</td>
-            </tr>
-        `).join('');
+        if (DOM.batchHistoryTableBody) {
+            DOM.batchHistoryTableBody.innerHTML = history.map(b => `
+                <tr>
+                    <td>#${b.id}</td>
+                    <td><strong>${b.year}</strong></td>
+                    <td>${escHtml(b.filename || 'Archive')}</td>
+                    <td>${b.total_shells}</td>
+                    <td>${b.total_documents}</td>
+                    <td>
+                        <span class="dim-delta-tag ${b.status === 'COMPLETED' ? 'dim-delta-tight' : 'dim-delta-medium'}">
+                            ${b.status}
+                        </span>
+                    </td>
+                    <td>${b.uploaded_at}</td>
+                </tr>
+            `).join('');
+        }
     } catch (e) {
         console.warn('Failed to load batch history:', e);
     }
@@ -1897,6 +1917,7 @@ async function loadBatchHistory() {
 // ── Helpers ────────────────────────────────────────────────
 
 function updateToleranceDisplay() {
+    if (!DOM.inputTolerance || !DOM.toleranceDisplay) return;
     const val = parseFloat(DOM.inputTolerance.value);
     DOM.toleranceDisplay.textContent = `± ${val.toFixed(1)} mm`;
     const pct = (val / 50) * 100;
@@ -1905,21 +1926,21 @@ function updateToleranceDisplay() {
 }
 
 function clearSearchForm() {
-    DOM.inputOd.value = '';
-    DOM.inputId.value = '';
-    DOM.inputLength.value = '';
-    DOM.inputJob.value = '';
-    DOM.inputTolerance.value = 5;
+    if (DOM.inputOd) DOM.inputOd.value = '';
+    if (DOM.inputId) DOM.inputId.value = '';
+    if (DOM.inputLength) DOM.inputLength.value = '';
+    if (DOM.inputJob) DOM.inputJob.value = '';
+    if (DOM.inputTolerance) DOM.inputTolerance.value = 5;
 
-    DOM.inputWt.value = '';
-    DOM.inputWtTol.value = '2.0';
-    DOM.selectMaterial.value = '';
-    DOM.selectShellType.value = '';
-    DOM.inputMinWeight.value = '';
-    DOM.inputMaxWeight.value = '';
-    DOM.selectLot.value = '';
-    DOM.selectYear.value = '';
-    DOM.inputGlobalQuery.value = '';
+    if (DOM.inputWt) DOM.inputWt.value = '';
+    if (DOM.inputWtTol) DOM.inputWtTol.value = '2.0';
+    if (DOM.selectMaterial) DOM.selectMaterial.value = '';
+    if (DOM.selectShellType) DOM.selectShellType.value = '';
+    if (DOM.inputMinWeight) DOM.inputMinWeight.value = '';
+    if (DOM.inputMaxWeight) DOM.inputMaxWeight.value = '';
+    if (DOM.selectLot) DOM.selectLot.value = '';
+    if (DOM.selectYear) DOM.selectYear.value = '';
+    if (DOM.inputGlobalQuery) DOM.inputGlobalQuery.value = '';
 
     updateToleranceDisplay();
     currentSearchResults = [];
