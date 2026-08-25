@@ -754,7 +754,7 @@ function renderDenseTable(results) {
         const castCount = (s.documents || []).filter(d => d.doc_type === 'CASTING_LOG').length;
 
         const diffDisplay = s.weight_diff !== null && s.weight_diff !== undefined
-            ? `<span style="color:${s.weight_diff > 0 ? 'var(--accent-amber)' : 'var(--accent-cyan)'}; font-weight:600;">${s.weight_diff > 0 ? '+' : ''}${s.weight_diff}</span>`
+            ? `<span style="color:${s.weight_diff > 0 ? 'var(--accent-amber)' : 'var(--accent-steel)'}; font-weight:600;">${s.weight_diff > 0 ? '+' : ''}${s.weight_diff}</span>`
             : '—';
 
         tableHtml += `
@@ -968,6 +968,11 @@ function render2DSVG(shell) {
     const rFinishOd = (finishOd / 2.0) * scale;
     const rFinishId = (finishId / 2.0) * scale;
 
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const axisColor = isLight ? 'rgba(100, 116, 139, 0.25)' : 'rgba(255, 255, 255, 0.12)';
+    const boreFill = isLight ? '#f1f5f9' : '#090d16';
+    const innerBoreFill = isLight ? '#ffffff' : 'rgba(12, 13, 18, 0.95)';
+
     const svg = `
         <svg viewBox="0 0 300 280" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -980,8 +985,8 @@ function render2DSVG(shell) {
             </defs>
 
             <!-- Center Axes -->
-            <line x1="20" y1="140" x2="280" y2="140" stroke="rgba(255, 255, 255, 0.12)" stroke-dasharray="3 3"/>
-            <line x1="150" y1="20" x2="150" y2="260" stroke="rgba(255, 255, 255, 0.12)" stroke-dasharray="3 3"/>
+            <line x1="20" y1="140" x2="280" y2="140" stroke="${axisColor}" stroke-dasharray="3 3"/>
+            <line x1="150" y1="20" x2="150" y2="260" stroke="${axisColor}" stroke-dasharray="3 3"/>
 
             <!-- Cast Outer Body -->
             <circle cx="150" cy="140" r="${rCastOd}" fill="url(#hatchPattern)" stroke="#f59e0b" stroke-width="2"/>
@@ -990,18 +995,18 @@ function render2DSVG(shell) {
             <circle cx="150" cy="140" r="${rFinishOd}" fill="url(#finishHatch)" stroke="#10b981" stroke-width="2" stroke-dasharray="4 2"/>
 
             <!-- Finish Inner Bore -->
-            <circle cx="150" cy="140" r="${rFinishId}" fill="rgba(12, 13, 18, 0.95)" stroke="#10b981" stroke-width="1.5" stroke-dasharray="3 2"/>
+            <circle cx="150" cy="140" r="${rFinishId}" fill="${innerBoreFill}" stroke="#10b981" stroke-width="1.5" stroke-dasharray="3 2"/>
 
             <!-- Raw Cast Bore Void -->
-            <circle cx="150" cy="140" r="${rCastId}" fill="#090d16" stroke="#3b82f6" stroke-width="1.5"/>
+            <circle cx="150" cy="140" r="${rCastId}" fill="${boreFill}" stroke="#d97706" stroke-width="1.5"/>
 
             <!-- Annotations -->
             <text x="150" y="136" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="JetBrains Mono">BORE</text>
-            <text x="150" y="150" text-anchor="middle" fill="#06b6d4" font-size="9" font-family="JetBrains Mono">ID ${finishId}mm</text>
+            <text x="150" y="150" text-anchor="middle" fill="#f59e0b" font-size="9" font-family="JetBrains Mono">ID ${finishId}mm</text>
 
             <!-- OD Dimension Marker -->
-            <line x1="150" y1="15" x2="${150 + rCastOd}" y2="15" stroke="#38bdf8" stroke-width="1.2"/>
-            <text x="${150 + rCastOd/2}" y="12" text-anchor="middle" fill="#38bdf8" font-size="9" font-family="JetBrains Mono">OD ${castOd} mm</text>
+            <line x1="150" y1="15" x2="${150 + rCastOd}" y2="15" stroke="#fbbf24" stroke-width="1.2"/>
+            <text x="${150 + rCastOd/2}" y="12" text-anchor="middle" fill="#fbbf24" font-size="9" font-family="JetBrains Mono">OD ${castOd} mm</text>
         </svg>
     `;
 
@@ -1617,7 +1622,7 @@ async function loadQualityAnalytics() {
         if (DOM.kpiWeightVariance) {
             const netVar = data.kpi.net_weight_variance_kg || 0;
             DOM.kpiWeightVariance.textContent = `${netVar > 0 ? '+' : ''}${netVar.toLocaleString()} kg`;
-            DOM.kpiWeightVariance.style.color = netVar > 0 ? 'var(--accent-amber)' : 'var(--accent-cyan)';
+            DOM.kpiWeightVariance.style.color = netVar > 0 ? 'var(--accent-amber)' : 'var(--accent-steel)';
         }
         if (DOM.kpiAvgVariance) {
             DOM.kpiAvgVariance.textContent = `Avg: ${data.kpi.avg_weight_diff_kg || 0} kg / shell (${data.kpi.overweight_shells || 0} over, ${data.kpi.underweight_shells || 0} under)`;
@@ -1751,7 +1756,7 @@ function renderLotHeatmap(lotList) {
     DOM.lotHeatmapGrid.innerHTML = lotList.map(l => `
         <div class="heatmap-cell severity-${l.severity}" title="Lot #${l.lot_number}: ${l.defect_count} defects / ${l.total_shells} shells (${l.defect_density_pct}%)">
             <div class="cell-lot-title">Lot #${l.lot_number}</div>
-            <div class="cell-lot-density" style="color:var(--accent-${l.severity === 'high' ? 'red' : l.severity === 'medium' ? 'amber' : 'cyan'});">
+            <div class="cell-lot-density" style="color:var(--accent-${l.severity === 'high' ? 'red' : l.severity === 'medium' ? 'orange' : l.severity === 'low' ? 'gold' : 'green'});">
                 ${l.defect_density_pct}%
             </div>
             <div class="cell-lot-counts">${l.defect_count}/${l.total_shells}</div>

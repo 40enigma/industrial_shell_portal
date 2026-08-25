@@ -432,6 +432,17 @@ def parse_casting_log(filepath: Path | str, year: int = 2025) -> list[dict]:
             "file_path": str(path),
             "sheet_name": target_sheet,
         }
+
+        # Ignore empty summary rows with zero physical dimensions and zero weight
+        if (
+            finish_od is None
+            and cast_od is None
+            and actual_weight is None
+            and job_card_weight is None
+            and calculated_weight is None
+        ):
+            continue
+
         records.append(record)
 
     log.info(f"Successfully extracted {len(records)} casting log records from {path.name}")

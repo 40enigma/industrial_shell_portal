@@ -22,6 +22,7 @@ def normalize_job_number(raw: str | None) -> str | None:
     - Strips whitespace
     - Uppercases
     - Removes trailing .0 float artifacts
+    - Eliminates spaces around hyphens (e.g. 'E23- SUBO' -> 'E23-SUBO')
     - Consolidates internal whitespace
     """
     if not raw:
@@ -29,7 +30,8 @@ def normalize_job_number(raw: str | None) -> str | None:
     s = str(raw).strip().upper()
     if s.endswith(".0"):
         s = s[:-2]
-    s = re.sub(r"\s+", " ", s)
+    s = re.sub(r"\s*-\s*", "-", s)
+    s = re.sub(r"\s+", " ", s).strip()
     return s if s else None
 
 
