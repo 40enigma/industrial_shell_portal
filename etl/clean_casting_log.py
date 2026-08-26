@@ -209,7 +209,7 @@ def parse_casting_log(filepath: Path | str, year: int = 2025) -> list[dict]:
         row = rows[r_idx]
         row_vals = [str(v or "").strip() for v in row]
         row_str = " ".join(row_vals).lower()
-        has_real_job = any(re.match(r"^[A-Za-z0-9]{2,4}-[A-Za-z0-9]{3,5}-\d{4}", v) for v in row_vals if v)
+        has_real_job = any(re.match(r"^[A-Za-z0-9]{2,5}-[A-Za-z0-9]{3,6}-\d{3,5}", v) for v in row_vals if v)
         if has_real_job:
             break
         if any(k in row_str for k in header_keywords):
@@ -304,7 +304,7 @@ def parse_casting_log(filepath: Path | str, year: int = 2025) -> list[dict]:
             continue
 
         # Handle inverted IDM and Job Number columns in irregular sheets
-        if "IDM" in job_number.upper() and re.match(r"^[A-Za-z0-9]{2,4}-[A-Za-z0-9]{3,5}-\d{4}", shell_name):
+        if "IDM" in job_number.upper() and re.match(r"^[A-Za-z0-9]{2,5}-[A-Za-z0-9]{3,6}-\d{3,5}", shell_name):
             job_number = shell_name
             shell_name = "Mill Roller Shell"
 
@@ -449,21 +449,27 @@ def parse_casting_log(filepath: Path | str, year: int = 2025) -> list[dict]:
     return records
 
 
-def find_casting_log_file(custom_path: str | Path | None = None) -> Path | None:
+def find_casting_log_file(custom_path: str | Path | None = None, year: int = 2025) -> Path | None:
     """Find the casting log file from candidate locations."""
     if custom_path:
         p = Path(custom_path)
         if p.exists():
             return p
 
-    for candidate in CASTING_LOG_CANDIDATES:
+    candidates = [
+        RAW_DIR / f"Actual Casting Log {year}.xlsx",
+        Path(r"d:\ML\Qadri ML project\Data For Project (Mill Roller Shell Data based)") / str(year) / f"Actual Casting Log {year}.xlsx",
+        Path(r"d:\ML\Qadri ML project\Data For Project (Mill Roller Shell Data based)") / f"Actual Casting Log {year}.xlsx",
+    ]
+
+    for candidate in candidates:
         if candidate.exists():
             return candidate
 
     # Search in raw data dir
     if RAW_DIR.exists():
         for f in RAW_DIR.glob("*.xlsx"):
-            if "casting" in f.name.lower():
+            if "casting" in f.name.lower() and str(year) in f.name:
                 return f
 
     return None

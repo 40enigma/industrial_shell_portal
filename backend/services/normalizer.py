@@ -75,8 +75,8 @@ def extract_all_job_tokens(raw_job: str | None, filename: str | None = None) -> 
     text_to_search = f"{raw_job or ''} {filename or ''}".upper()
     tokens = set()
 
-    # Standard full pattern: SE24-CAGS-0013, SL25-JDW1-0711
-    full_matches = re.findall(r"([A-Z]{2}\d{2}-[A-Z0-9]{2,6}-\d{3,5})", text_to_search)
+    # Standard full pattern: SE24-CAGS-0013, SL25-JDW1-0711, E23-STRI-0083
+    full_matches = re.findall(r"([A-Z]{1,2}\d{2}-[A-Z0-9]{2,6}-\d{3,5})", text_to_search)
     tokens.update(full_matches)
 
     # Core sequence pattern: CAGS-0013, BSCM-0025
@@ -84,7 +84,7 @@ def extract_all_job_tokens(raw_job: str | None, filename: str | None = None) -> 
     tokens.update(short_matches)
 
     # Multi-number pattern: SE24-CAGS-0013 & 0014 or SE24-CAGS-0013  0014
-    amp_matches = re.findall(r"([A-Z]{2}\d{2}-[A-Z0-9]+)-(\d+)\s*(?:&|and|,|\s+)\s*(\d+)", text_to_search)
+    amp_matches = re.findall(r"([A-Z]{1,2}\d{2}-[A-Z0-9]+)-(\d+)\s*(?:&|and|,|\s+)\s*(\d+)", text_to_search)
     for prefix, num1, num2 in amp_matches:
         tokens.add(f"{prefix}-{num1}")
         tokens.add(f"{prefix}-{num2}")

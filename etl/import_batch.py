@@ -57,7 +57,7 @@ def import_batch(
 
     mq_path = Path(mq_dir) if mq_dir else None
     qdar_path = Path(qdar_dir) if qdar_dir else None
-    cast_path = Path(casting_log) if casting_log else find_casting_log_file()
+    cast_path = Path(casting_log) if casting_log else find_casting_log_file(year=year)
 
     if not mq_path and not qdar_path and not cast_path:
         log.error("Error: Please provide at least one of --mq-dir, --qdar-dir, --casting-log, or --auto-detect.")
