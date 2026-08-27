@@ -688,7 +688,7 @@ body {
 }
 
 .mode-grid-4 {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(2, 1fr);
 }
 
 .segment-btn {
@@ -696,17 +696,18 @@ body {
     border: none;
     color: var(--text-secondary);
     font-family: var(--font-sans);
-    font-size: 0.72rem;
+    font-size: 0.74rem;
     font-weight: 600;
-    padding: 7px 4px;
+    padding: 8px 6px;
     border-radius: var(--radius-sm);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 6px;
     transition: all var(--transition-fast);
     white-space: nowrap;
+    min-width: 0;
 }
 
 .segment-btn .segment-dot {
