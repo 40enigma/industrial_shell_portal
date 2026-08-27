@@ -283,6 +283,18 @@ def parse_all_qdar_files(qdar_dir: Path | None = None, year: int = 2025) -> list
             all_records.extend(int_records)
             log.info(f"  Internal: {len(int_records)} records parsed from {int_dir}")
 
+        # Scan direct root files in target_dir that are not inside subdirectories
+        direct_files = [f for f in target_dir.glob("*.xls*") if not f.name.startswith("~$") and f.is_file()]
+        if direct_files and (ext_dir.exists() or int_dir.exists()):
+            root_records = []
+            cell_map = EXTERNAL_CELLS
+            for fpath in direct_files:
+                rec = parse_xlsx_qdar(fpath, cell_map, "QDR_EXTERNAL", year=year) or parse_xls_qdar(fpath, cell_map, "QDR_EXTERNAL", year=year)
+                if rec:
+                    root_records.append(rec)
+            all_records.extend(root_records)
+            log.info(f"  Direct Root Files: {len(root_records)} records parsed from {target_dir}")
+
         if not ext_dir.exists() and not int_dir.exists():
             records = parse_qdar_directory(target_dir, "QDR_EXTERNAL", year=year)
             all_records.extend(records)

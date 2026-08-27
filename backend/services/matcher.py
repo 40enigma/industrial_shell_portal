@@ -38,8 +38,8 @@ def calculate_confidence(
     if not deviations:
         return 0.0
 
-    total_deviation = sum(deviations)
-    return round(max(0.0, 100.0 - total_deviation * 100.0), 2)
+    avg_deviation = sum(deviations) / len(deviations)
+    return round(max(0.0, 100.0 - avg_deviation * 100.0), 2)
 
 
 def calculate_signed_deltas(
@@ -251,11 +251,17 @@ def search_shells(
         if wall_thickness is not None:
             filters.append(and_(Shell.wall_thickness.isnot(None), Shell.wall_thickness >= wall_thickness - wt_tolerance, Shell.wall_thickness <= wall_thickness + wt_tolerance))
 
-    # Advanced Filters
+    # Advanced Filters (evaluates against nominal or measured weights)
     if min_weight is not None:
-        filters.append(and_(Shell.weight.isnot(None), Shell.weight >= min_weight))
+        filters.append(or_(
+            and_(Shell.weight.isnot(None), Shell.weight >= min_weight),
+            and_(Shell.actual_weight.isnot(None), Shell.actual_weight >= min_weight),
+        ))
     if max_weight is not None:
-        filters.append(and_(Shell.weight.isnot(None), Shell.weight <= max_weight))
+        filters.append(or_(
+            and_(Shell.weight.isnot(None), Shell.weight <= max_weight),
+            and_(Shell.actual_weight.isnot(None), Shell.actual_weight <= max_weight),
+        ))
     if material_standard:
         filters.append(Shell.material_standard.ilike(f"%{material_standard.strip()}%"))
     if shell_type:
@@ -303,7 +309,9 @@ def search_shells(
             conf = calculate_confidence(od, id_dim, length, shell.cast_od, shell.cast_id, shell.cast_length)
             deltas = calculate_signed_deltas(od, id_dim, length, wall_thickness, shell.cast_od, shell.cast_id, shell.cast_length, shell.cast_wall_thickness)
             envelope = calculate_machining_envelope(
-                target_od=shell.od or (od or 0), target_id=shell.id_dim or (id_dim or 0), target_length=shell.length or (length or 0),
+                target_od=shell.od if shell.od is not None else od,
+                target_id=shell.id_dim if shell.id_dim is not None else id_dim,
+                target_length=shell.length if shell.length is not None else length,
                 cast_od=shell.cast_od, cast_id=shell.cast_id, cast_length=shell.cast_length,
             )
             matched_mode_used = "casted"
@@ -319,14 +327,18 @@ def search_shells(
                 deltas = calculate_signed_deltas(od, id_dim, length, wall_thickness, shell.od, shell.id_dim, shell.length, shell.wall_thickness)
                 matched_mode_used = "finish"
             envelope = calculate_machining_envelope(
-                target_od=shell.od or (od or 0), target_id=shell.id_dim or (id_dim or 0), target_length=shell.length or (length or 0),
+                target_od=shell.od if shell.od is not None else od,
+                target_id=shell.id_dim if shell.id_dim is not None else id_dim,
+                target_length=shell.length if shell.length is not None else length,
                 cast_od=shell.cast_od, cast_id=shell.cast_id, cast_length=shell.cast_length,
             )
         else:
             conf = calculate_confidence(od, id_dim, length, shell.od, shell.id_dim, shell.length)
             deltas = calculate_signed_deltas(od, id_dim, length, wall_thickness, shell.od, shell.id_dim, shell.length, shell.wall_thickness)
             envelope = calculate_machining_envelope(
-                target_od=shell.od or (od or 0), target_id=shell.id_dim or (id_dim or 0), target_length=shell.length or (length or 0),
+                target_od=shell.od if shell.od is not None else od,
+                target_id=shell.id_dim if shell.id_dim is not None else id_dim,
+                target_length=shell.length if shell.length is not None else length,
                 cast_od=shell.cast_od, cast_id=shell.cast_id, cast_length=shell.cast_length,
             )
             matched_mode_used = "finish"

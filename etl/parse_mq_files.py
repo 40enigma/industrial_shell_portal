@@ -356,9 +356,11 @@ def parse_single_mq_workbook(filepath: Path, lot_dir_name: str, year: int = 2025
 
         sheet_ref = None
         if serial_int is not None and serial_int >= 1:
-            candidate = f"Shell#{serial_int}"
-            if candidate in shell_sheets:
-                sheet_ref = candidate
+            for sn in sheet_names:
+                m_sn = re.match(r"^shell[#\s]*0*(\d+)", sn.lower().strip())
+                if m_sn and int(m_sn.group(1)) == serial_int:
+                    sheet_ref = sn
+                    break
 
         mat_raw = safe_str(get_cell(row_idx, col_map.get("material_standard", 23)))
         shell_type_raw = safe_str(get_cell(row_idx, col_map.get("shell_type", 7)))

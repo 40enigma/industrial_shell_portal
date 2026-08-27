@@ -313,7 +313,8 @@ def download_document(doc_id: int, db: Session = Depends(get_db)):
     }
     media_type = media_types.get(suffix, "application/octet-stream")
 
-    job_prefix = f"[JOB_{doc.job_number}]_" if doc.job_number else ""
+    clean_job = str(doc.job_number).replace("/", "_").replace("\\", "_").replace(" ", "_") if doc.job_number else ""
+    job_prefix = f"[JOB_{clean_job}]_" if clean_job else ""
     highlighted_filename = f"{job_prefix}{file_path.name}"
 
     return FileResponse(

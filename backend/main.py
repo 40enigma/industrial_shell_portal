@@ -38,19 +38,23 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS — restricted in production, permissive in development
-ALLOWED_ORIGINS = ["*"] if DEBUG else [
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
-]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# CORS — compliant with W3C / Fetch CORS specifications
+if DEBUG:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origin_regex=r"^https?://.*",
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:8000", "http://127.0.0.1:8000"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 # Include API routers
 app.include_router(search_router)

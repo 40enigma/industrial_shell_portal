@@ -162,8 +162,8 @@ def seed_shells(
             lot_number=lot,
             serial_number=serial,
             data_year=rec.get("data_year", 2025),
-            # Weight metrics (kg)
-            weight=actual_wt or job_card_wt or calc_wt,
+            # Weight metrics (kg): weight represents nominal job card/drawing weight
+            weight=job_card_wt or calc_wt,
             actual_weight=actual_wt,
             job_card_weight=job_card_wt,
             calculated_weight=calc_wt,
@@ -294,8 +294,8 @@ def seed_shells(
             lot_number=c.get("lot_number"),
             serial_number=c.get("serial_number"),
             data_year=c.get("data_year", 2025),
-            # Weight metrics (kg)
-            weight=actual_wt or job_card_wt or calc_wt,
+            # Weight metrics (kg): weight represents nominal allowable weight
+            weight=job_card_wt or calc_wt,
             actual_weight=actual_wt,
             job_card_weight=job_card_wt,
             calculated_weight=calc_wt,
@@ -508,20 +508,25 @@ def seed_qdars(
 def run_seed_pipeline(clear_existing: bool = True):
     """Run full schema recreation and database population with M&Q, Casting Log, and QDARS."""
     # Ensure processed files are up to date
+    if not MQ_JSON.exists():
+        from etl.parse_mq_files import main as run_mq_etl
+        run_mq_etl()
     if not CASTING_JSON.exists():
         from etl.clean_casting_log import main as run_casting_etl
         run_casting_etl()
+    if not QDAR_JSON.exists():
+        from etl.parse_qad_files import main as run_qdar_etl
+        run_qdar_etl()
 
-    init_db(drop_first=clear_existing)
+    init_db(drop_first=False)
     session = SessionLocal()
 
     try:
         if clear_existing:
             session.execute(text("DELETE FROM documents"))
             session.execute(text("DELETE FROM shells"))
-            session.execute(text("DELETE FROM ingestion_batches"))
             session.commit()
-            log.info("Cleared database records for clean seeding")
+            log.info("Cleared database records for clean seeding (retained ingestion history)")
 
         job_base, tokens, drawings = seed_shells(session)
         seed_qdars(session, job_base, tokens, drawings)

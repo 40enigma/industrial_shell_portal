@@ -134,20 +134,30 @@ def run_background_ingestion(batch_id: int, year: int, extract_dir: Path):
             seed_qdars(db, job_base, tokens, drawings, qdar_records=qdar_records)
             logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Linked QDAR defect reports to shells using heuristic matching.")
 
-        cast_doc_count = db.query(Document).filter(Document.data_year == year, Document.doc_type == "CASTING_LOG").count()
-        batch.total_documents = len(mq_records) + len(qdar_records) + cast_doc_count
+        doc_count = db.query(Document).filter(Document.data_year == year).count()
+        batch.total_documents = doc_count
         batch.total_shells = db.query(Shell).filter(Shell.data_year == year).count()
         batch.status = "COMPLETED"
+        cast_doc_count = db.query(Document).filter(Document.data_year == year, Document.doc_type == "CASTING_LOG").count()
         logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Ingestion completed successfully! {batch.total_shells} shells, {batch.total_documents} documents ({cast_doc_count} Casting Logs).")
         batch.log_output = "\n".join(logs)
         db.commit()
 
     except Exception as e:
         log.error(f"Ingestion batch {batch_id} failed: {e}", exc_info=True)
-        logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] ERROR: {str(e)}")
-        batch.status = "FAILED"
-        batch.log_output = "\n".join(logs)
-        db.commit()
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        batch = db.query(IngestionBatch).filter(IngestionBatch.id == batch_id).first()
+        if batch:
+            logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] ERROR: {str(e)}")
+            batch.status = "FAILED"
+            batch.log_output = "\n".join(logs)
+            try:
+                db.commit()
+            except Exception:
+                pass
     finally:
         db.close()
 

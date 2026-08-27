@@ -61,18 +61,26 @@ def get_analytics_summary(db: Session = Depends(get_db)):
         else:
             judgment_counts["Other"] += 1
 
-    # Format Pareto list sorted descending
+    # Format Pareto list sorted descending based on total categorized defect occurrences
+    total_defect_occurrences = sum(v for v in category_counts.values())
     pareto_list = [
-        {"category": k, "count": v, "pct": round((v / qdr_count * 100.0) if qdr_count > 0 else 0, 1)}
+        {
+            "category": k,
+            "count": v,
+            "pct": round((v / total_defect_occurrences * 100.0) if total_defect_occurrences > 0 else 0, 1),
+        }
         for k, v in category_counts.items() if v > 0
     ]
     pareto_list.sort(key=lambda x: x["count"], reverse=True)
 
     # Cumulative %
     cum = 0.0
-    for item in pareto_list:
+    for idx, item in enumerate(pareto_list):
         cum += item["pct"]
-        item["cumulative_pct"] = round(min(100.0, cum), 1)
+        if idx == len(pareto_list) - 1:
+            item["cumulative_pct"] = 100.0
+        else:
+            item["cumulative_pct"] = round(min(100.0, cum), 1)
 
     # 2. Alloy Rejection & Rework Rates and 3. Lot Heatmap (Optimized SQL Aggregation)
     alloy_total_map = {
