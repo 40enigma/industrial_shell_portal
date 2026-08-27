@@ -52,19 +52,29 @@ def extract_base_job(raw: str | None) -> str | None:
 def normalize_piece_number(raw: str | None) -> str | None:
     """
     Normalize piece numbers.
-    Example: '01/01' -> '1/1', '02-04' -> '2/4', '1/2' -> '1/2'
+    Example: '01/01' -> '1/1', '02-04' -> '2/4', '1/2' -> '1/2', '1.0' -> '1', '01' -> '1'
     """
     if not raw:
         return None
-    s = str(raw).strip().replace("-", "/")
+    s = str(raw).strip()
+    # Remove float artifacts like '1.0'
+    if s.endswith(".0"):
+        s = s[:-2]
+    s = s.replace("-", "/")
     if "/" in s:
         parts = s.split("/")
         try:
-            parts = [str(int(p)) for p in parts]
+            # Handle each part potentially being a float or having leading zero
+            parts = [str(int(float(p.strip()))) for p in parts if p.strip()]
             return "/".join(parts)
-        except ValueError:
+        except (ValueError, TypeError):
             pass
-    return s
+    else:
+        try:
+            return str(int(float(s)))
+        except (ValueError, TypeError):
+            pass
+    return s if s else None
 
 
 def extract_all_job_tokens(raw_job: str | None, filename: str | None = None) -> list[str]:

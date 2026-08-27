@@ -169,12 +169,27 @@ def get_analytics_summary(db: Session = Depends(get_db)):
     # 4. Casting Intelligence & Weight Variance Analytics
     shells_with_act_wt = db.query(Shell).filter(Shell.actual_weight.isnot(None), Shell.actual_weight > 0).all()
     total_act_wt_kg = sum(s.actual_weight for s in shells_with_act_wt)
-    total_job_wt_kg = sum(s.job_card_weight or s.weight or 0 for s in shells_with_act_wt)
-    total_wt_diff_kg = round(total_act_wt_kg - total_job_wt_kg, 1)
+    
+    # Calculate job allowable weight for shells that have target weights
+    shells_with_job_wt = [s for s in shells_with_act_wt if (s.job_card_weight or s.weight)]
+    total_job_wt_kg = sum((s.job_card_weight or s.weight or 0) for s in shells_with_job_wt)
+    
+    # Weight variance computed on shells with known actual and allowable weights
+    shells_with_diff = [
+        s for s in shells_with_act_wt 
+        if s.weight_diff is not None or (s.actual_weight is not None and (s.job_card_weight or s.weight) is not None)
+    ]
+    
+    def _calc_diff(s):
+        if s.weight_diff is not None:
+            return s.weight_diff
+        allowable = s.job_card_weight or s.weight
+        return (s.actual_weight - allowable) if (s.actual_weight and allowable) else 0.0
 
-    overweight_count = sum(1 for s in shells_with_act_wt if (s.weight_diff or 0) > 0)
-    underweight_count = sum(1 for s in shells_with_act_wt if (s.weight_diff or 0) < 0)
-    avg_diff_kg = round(total_wt_diff_kg / len(shells_with_act_wt), 1) if shells_with_act_wt else 0.0
+    total_wt_diff_kg = round(sum(_calc_diff(s) for s in shells_with_diff), 1)
+    overweight_count = sum(1 for s in shells_with_diff if _calc_diff(s) > 0)
+    underweight_count = sum(1 for s in shells_with_diff if _calc_diff(s) < 0)
+    avg_diff_kg = round(total_wt_diff_kg / len(shells_with_diff), 1) if shells_with_diff else 0.0
 
     # Monthly Casting Throughput
     month_order = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -182,6 +197,10 @@ def get_analytics_summary(db: Session = Depends(get_db)):
         "june": "Jun", "july": "Jul", "sept": "Sep", "september": "Sep",
         "january": "Jan", "february": "Feb", "march": "Mar", "april": "Apr",
         "august": "Aug", "october": "Oct", "november": "Nov", "december": "Dec",
+        "1": "Jan", "01": "Jan", "2": "Feb", "02": "Feb", "3": "Mar", "03": "Mar",
+        "4": "Apr", "04": "Apr", "5": "May", "05": "May", "6": "Jun", "06": "Jun",
+        "7": "Jul", "07": "Jul", "8": "Aug", "08": "Aug", "9": "Sep", "09": "Sep",
+        "10": "Oct", "11": "Nov", "12": "Dec",
     }
     monthly_raw = db.query(
         Shell.month,
@@ -194,7 +213,7 @@ def get_analytics_summary(db: Session = Depends(get_db)):
         if not m[0]:
             continue
         m_name = str(m[0]).strip()
-        canonical_m = month_aliases.get(m_name.lower(), m_name.capitalize())
+        canonical_m = month_aliases.get(m_name.lower(), month_aliases.get(m_name, m_name.capitalize()))
         if canonical_m in monthly_map:
             monthly_map[canonical_m]["count"] += m[1]
             monthly_map[canonical_m]["tonnage"] = round(monthly_map[canonical_m]["tonnage"] + ((m[2] or 0) / 1000.0), 2)

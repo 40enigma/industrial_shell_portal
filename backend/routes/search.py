@@ -13,6 +13,12 @@ from backend.services.matcher import search_shells
 router = APIRouter(prefix="/api", tags=["search"])
 
 
+def _unwrap(val, fallback=None):
+    if hasattr(val, "default"):
+        return val.default if val.default is not ... else fallback
+    return val if val is not None else fallback
+
+
 @router.get("/search")
 def search(
     od: float | None = Query(None, description="Target Outer Diameter (mm)"),
@@ -46,28 +52,28 @@ def search(
     """
     results = search_shells(
         db=db,
-        od=od,
-        id_dim=id,
-        length=length,
-        tolerance=tolerance,
-        dimension_mode=dimension_mode,
-        machining_mode=machining_mode,
-        od_allowance=od_allowance,
-        id_allowance=id_allowance,
-        face_allowance=face_allowance,
-        wall_thickness=wall_thickness,
-        wt_tolerance=wt_tolerance,
-        min_weight=min_weight,
-        max_weight=max_weight,
-        material_standard=material_standard,
-        shell_type=shell_type,
-        job_number=job_number,
-        query=query,
-        lot_number=lot_number,
-        data_year=data_year,
-        sort_by=sort_by,
-        sort_order=sort_order,
-        limit=limit,
+        od=_unwrap(od),
+        id_dim=_unwrap(id),
+        length=_unwrap(length),
+        tolerance=float(_unwrap(tolerance, 5.0)),
+        dimension_mode=str(_unwrap(dimension_mode, "finish")),
+        machining_mode=bool(_unwrap(machining_mode, False)),
+        od_allowance=float(_unwrap(od_allowance, 5.0)),
+        id_allowance=float(_unwrap(id_allowance, 5.0)),
+        face_allowance=float(_unwrap(face_allowance, 10.0)),
+        wall_thickness=_unwrap(wall_thickness),
+        wt_tolerance=float(_unwrap(wt_tolerance, 2.0)),
+        min_weight=_unwrap(min_weight),
+        max_weight=_unwrap(max_weight),
+        material_standard=_unwrap(material_standard),
+        shell_type=_unwrap(shell_type),
+        job_number=_unwrap(job_number),
+        query=_unwrap(query),
+        lot_number=_unwrap(lot_number),
+        data_year=_unwrap(data_year),
+        sort_by=str(_unwrap(sort_by, "confidence")),
+        sort_order=str(_unwrap(sort_order, "desc")),
+        limit=int(_unwrap(limit, 100)),
     )
 
     return {
@@ -129,10 +135,16 @@ def get_filters(db: Session = Depends(get_db)):
         if cp[0]
     ]
 
-    months = [
+    month_order = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    raw_months = [
         m[0] for m in db.query(Shell.month).distinct().all()
         if m[0]
     ]
+    # Sort months by calendar order if possible
+    months = sorted(
+        raw_months,
+        key=lambda m: (month_order.index(m) if m in month_order else (month_order.index(m[:3].capitalize()) if m[:3].capitalize() in month_order else 99), m)
+    )
 
     return {
         "material_standards": materials,
@@ -168,33 +180,34 @@ def export_csv(
     data_year: int | None = Query(None),
     sort_by: str = Query("confidence"),
     sort_order: str = Query("desc"),
+    limit: int = Query(100000, description="Max export limit"),
     db: Session = Depends(get_db),
 ):
     """Export filtered search results as a comprehensive CSV with casting data."""
     results = search_shells(
         db=db,
-        od=od,
-        id_dim=id,
-        length=length,
-        tolerance=tolerance,
-        dimension_mode=dimension_mode,
-        machining_mode=machining_mode,
-        od_allowance=od_allowance,
-        id_allowance=id_allowance,
-        face_allowance=face_allowance,
-        wall_thickness=wall_thickness,
-        wt_tolerance=wt_tolerance,
-        min_weight=min_weight,
-        max_weight=max_weight,
-        material_standard=material_standard,
-        shell_type=shell_type,
-        job_number=job_number,
-        query=query,
-        lot_number=lot_number,
-        data_year=data_year,
-        sort_by=sort_by,
-        sort_order=sort_order,
-        limit=1000,
+        od=_unwrap(od),
+        id_dim=_unwrap(id),
+        length=_unwrap(length),
+        tolerance=float(_unwrap(tolerance, 5.0)),
+        dimension_mode=str(_unwrap(dimension_mode, "finish")),
+        machining_mode=bool(_unwrap(machining_mode, False)),
+        od_allowance=float(_unwrap(od_allowance, 5.0)),
+        id_allowance=float(_unwrap(id_allowance, 5.0)),
+        face_allowance=float(_unwrap(face_allowance, 10.0)),
+        wall_thickness=_unwrap(wall_thickness),
+        wt_tolerance=float(_unwrap(wt_tolerance, 2.0)),
+        min_weight=_unwrap(min_weight),
+        max_weight=_unwrap(max_weight),
+        material_standard=_unwrap(material_standard),
+        shell_type=_unwrap(shell_type),
+        job_number=_unwrap(job_number),
+        query=_unwrap(query),
+        lot_number=_unwrap(lot_number),
+        data_year=_unwrap(data_year),
+        sort_by=str(_unwrap(sort_by, "confidence")),
+        sort_order=str(_unwrap(sort_order, "desc")),
+        limit=int(_unwrap(limit, 100000)),
     )
 
     output = io.StringIO()

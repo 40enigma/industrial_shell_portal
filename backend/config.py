@@ -12,10 +12,29 @@ DATA_DIR = PROJECT_ROOT / "data"
 RAW_DATA_DIR = DATA_DIR / "raw"
 PROCESSED_DATA_DIR = DATA_DIR / "processed"
 
-# Original raw data location
-ORIGINAL_DATA_DIR = Path(r"d:\ML\Qadri ML project\Data For Project (Mill Roller Shell Data based)")
-RAW_MQ_DIR = ORIGINAL_DATA_DIR / "M& Q 2025 Data"
-RAW_QDAR_DIR = ORIGINAL_DATA_DIR / "QDARS 2025"
+# Original raw data location (dynamically resolved with fallback)
+_workspace_root = PROJECT_ROOT.parent
+_candidate_data_dirs = [
+    _workspace_root / "Data For Project (Mill Roller Shell Data based)",
+    PROJECT_ROOT / "data" / "raw",
+]
+ORIGINAL_DATA_DIR = next((p for p in _candidate_data_dirs if p.exists()), _candidate_data_dirs[0])
+
+# Dynamic resolution for 2025 raw folders (handles both 'M& Q 2025 Data' and 'M&Q 2025 Data')
+def _find_dir_by_pattern(parent: Path, patterns: list[str]) -> Path:
+    if parent.exists():
+        for pat in patterns:
+            matches = list(parent.glob(pat))
+            if matches:
+                return matches[0]
+            # Also check subfolder for year (e.g. 2025/)
+            year_matches = list(parent.glob(f"*/{pat}"))
+            if year_matches:
+                return year_matches[0]
+    return parent / patterns[0].replace("*", "")
+
+RAW_MQ_DIR = _find_dir_by_pattern(ORIGINAL_DATA_DIR, ["*M*Q*2025*Data*", "*MQ*2025*"])
+RAW_QDAR_DIR = _find_dir_by_pattern(ORIGINAL_DATA_DIR, ["*QDAR*2025*", "*QDR*2025*"])
 
 # Database
 DB_PATH = DATA_DIR / "industrial_shells.db"

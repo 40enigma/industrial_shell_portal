@@ -24,7 +24,20 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from backend.services.normalizer import normalize_job_number, normalize_piece_number
 
-RAW_QDAR_DIR = Path(r"d:\ML\Qadri ML project\Data For Project (Mill Roller Shell Data based)\QDARS 2025")
+_workspace_root = PROJECT_ROOT.parent
+_candidate_parent = _workspace_root / "Data For Project (Mill Roller Shell Data based)"
+
+def _resolve_qdar_dir(year: int = 2025) -> Path:
+    if _candidate_parent.exists():
+        for pat in [f"*QDAR*{year}*", f"*QDR*{year}*", f"{year}/*QDAR*", f"{year}/*QDR*"]:
+            matches = list(_candidate_parent.glob(pat))
+            if matches:
+                return matches[0]
+        if (_candidate_parent / str(year)).exists():
+            return _candidate_parent / str(year)
+    return _candidate_parent / f"QDARS {year}"
+
+RAW_QDAR_DIR = _resolve_qdar_dir(2025)
 OUTPUT_DIR = PROJECT_ROOT / "data" / "processed"
 OUTPUT_FILE = OUTPUT_DIR / "qdar_mapping.json"
 
@@ -80,11 +93,39 @@ INTERNAL_CELLS = {
 }
 
 
+def _extract_fuzzy_fields_openpyxl(sh, record: dict):
+    """Scan top 35 rows for Job Number, QDAR number, Defect and Judgment if coordinates failed."""
+    if not record.get("job_number"):
+        for r in range(1, min(sh.max_row or 35, 35) + 1):
+            for c in range(1, min(sh.max_column or 15, 15) + 1):
+                val = str(sh.cell(row=r, column=c).value or "").strip()
+                m = re.search(r"([A-Z]{1,2}\d{2}-[A-Z0-9]{2,6}-\d{3,5})", val.upper())
+                if m:
+                    record["job_number"] = m.group(1)
+                    break
+            if record.get("job_number"):
+                break
+
+
+def _extract_fuzzy_fields_xlrd(sh, record: dict):
+    """Scan top 35 rows for Job Number if coordinates failed."""
+    if not record.get("job_number"):
+        for r in range(min(sh.nrows, 35)):
+            for c in range(min(sh.ncols, 15)):
+                val = str(sh.cell_value(r, c)).strip()
+                m = re.search(r"([A-Z]{1,2}\d{2}-[A-Z0-9]{2,6}-\d{3,5})", val.upper())
+                if m:
+                    record["job_number"] = m.group(1)
+                    break
+            if record.get("job_number"):
+                break
+
+
 def parse_xlsx_qdar(filepath: Path, cell_map: dict, doc_subtype: str, year: int = 2025) -> dict | None:
     """Parse .xlsx QDAR workbook using openpyxl."""
     try:
         wb = openpyxl.load_workbook(str(filepath), data_only=True, read_only=True)
-    except Exception as e:
+    except Exception:
         return None
 
     try:
@@ -103,12 +144,14 @@ def parse_xlsx_qdar(filepath: Path, cell_map: dict, doc_subtype: str, year: int 
             except Exception:
                 record[field] = None
 
+        _extract_fuzzy_fields_openpyxl(sh, record)
+
         wb.close()
 
         record["job_number"] = normalize_job_number(record.get("job_number"))
         record["piece_number"] = normalize_piece_number(record.get("piece_number"))
         return record
-    except Exception as e:
+    except Exception:
         try: wb.close()
         except Exception: pass
         return None
@@ -136,6 +179,8 @@ def parse_xls_qdar(filepath: Path, cell_map: dict, doc_subtype: str, year: int =
                 record[field] = safe_str(sh.cell_value(r_0, c_0))
             else:
                 record[field] = None
+
+        _extract_fuzzy_fields_xlrd(sh, record)
 
         record["job_number"] = normalize_job_number(record.get("job_number"))
         record["piece_number"] = normalize_piece_number(record.get("piece_number"))

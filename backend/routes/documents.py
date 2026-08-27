@@ -77,7 +77,16 @@ def list_shell_files(shell_id: int, db: Session = Depends(get_db)):
         filters.append(Document.job_number == shell.job_number)
     docs = db.query(Document).filter(or_(*filters)).all()
 
-    files = [_build_doc_file_info(d) for d in docs]
+    # Deduplicate documents by file path and type
+    seen_keys = set()
+    deduped_docs = []
+    for d in docs:
+        key = (d.doc_type, str(d.file_path or ""), d.sheet_name or "", d.doc_number or "")
+        if key not in seen_keys:
+            seen_keys.add(key)
+            deduped_docs.append(d)
+
+    files = [_build_doc_file_info(d) for d in deduped_docs]
 
     return {
         "shell_id": shell.id,
@@ -100,7 +109,17 @@ def list_job_files(job_number: str, db: Session = Depends(get_db)):
         query_filters.append(Document.shell_id == shell.id)
 
     docs = db.query(Document).filter(or_(*query_filters)).all()
-    files = [_build_doc_file_info(d) for d in docs]
+
+    # Deduplicate documents by file path and type
+    seen_keys = set()
+    deduped_docs = []
+    for d in docs:
+        key = (d.doc_type, str(d.file_path or ""), d.sheet_name or "", d.doc_number or "")
+        if key not in seen_keys:
+            seen_keys.add(key)
+            deduped_docs.append(d)
+
+    files = [_build_doc_file_info(d) for d in deduped_docs]
 
     return {
         "job_number": job_number,
@@ -338,6 +357,24 @@ def download_job_bundle(
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
         # 1. Add Job Dossier Summary text file
+        # Look up alloy profile for nominal fallback
+        from etl.parse_mq_files import get_metallurgy_profile
+        nom_meta = get_metallurgy_profile(shell.material_standard if shell else None)
+
+        c_disp = f"{shell.c_pct:.2f}" if (shell and shell.c_pct) else f"{nom_meta.get('c_pct', 3.35):.2f}"
+        si_disp = f"{shell.si_pct:.2f}" if (shell and shell.si_pct) else f"{nom_meta.get('si_pct', 1.85):.2f}"
+        mn_disp = f"{shell.mn_pct:.2f}" if (shell and shell.mn_pct) else f"{nom_meta.get('mn_pct', 0.65):.2f}"
+        p_disp = f"{shell.p_pct:.3f}" if (shell and shell.p_pct) else f"{nom_meta.get('p_pct', 0.06):.3f}"
+        s_disp = f"{shell.s_pct:.3f}" if (shell and shell.s_pct) else f"{nom_meta.get('s_pct', 0.05):.3f}"
+        cr_disp = f"{shell.cr_pct:.2f}" if (shell and shell.cr_pct) else f"{nom_meta.get('cr_pct', 0.30):.2f}"
+        ni_disp = f"{shell.ni_pct:.2f}" if (shell and shell.ni_pct) else f"{nom_meta.get('ni_pct', 0.35):.2f}"
+        mo_disp = f"{shell.mo_pct:.2f}" if (shell and shell.mo_pct) else f"{nom_meta.get('mo_pct', 0.18):.2f}"
+
+        hard_disp = f"{shell.hardness_bhn:.0f}" if (shell and shell.hardness_bhn) else f"{nom_meta.get('hardness_bhn', 210):.0f}"
+        tens_disp = f"{shell.tensile_strength:.0f}" if (shell and shell.tensile_strength) else f"{nom_meta.get('tensile_strength', 280):.0f}"
+        yield_disp = f"{shell.yield_strength:.0f}" if (shell and shell.yield_strength) else f"{nom_meta.get('yield_strength', 190):.0f}"
+        elong_disp = f"{shell.elongation_pct:.1f}" if (shell and shell.elongation_pct) else f"{nom_meta.get('elongation_pct', 0.6):.1f}"
+
         summary_text = [
             "=" * 70,
             f" INDUSTRIAL SHELL FOUNDRY INTELLIGENCE DOSSIER",
@@ -371,14 +408,14 @@ def download_job_bundle(
             f"   - Technology/Riser:   {shell.technology if shell else 'Standard'}",
             "",
             "4. CHEMICAL COMPOSITION (% Weight):",
-            f"   - %C:  {shell.c_pct if shell and shell.c_pct else '3.30'} | %Si: {shell.si_pct if shell and shell.si_pct else '1.90'} | %Mn: {shell.mn_pct if shell and shell.mn_pct else '0.70'} | %P: {shell.p_pct if shell and shell.p_pct else '0.05'}",
-            f"   - %S:  {shell.s_pct if shell and shell.s_pct else '0.04'} | %Cr: {shell.cr_pct if shell and shell.cr_pct else '0.40'} | %Ni: {shell.ni_pct if shell and shell.ni_pct else '0.50'} | %Mo: {shell.mo_pct if shell and shell.mo_pct else '0.25'}",
+            f"   - %C:  {c_disp} | %Si: {si_disp} | %Mn: {mn_disp} | %P: {p_disp}",
+            f"   - %S:  {s_disp} | %Cr: {cr_disp} | %Ni: {ni_disp} | %Mo: {mo_disp}",
             "",
             "5. MECHANICAL TESTING PROPERTIES:",
-            f"   - Hardness:           {shell.hardness_bhn if shell and shell.hardness_bhn else 225} BHN",
-            f"   - Tensile Strength:   {shell.tensile_strength if shell and shell.tensile_strength else 300} MPa",
-            f"   - Yield Strength:     {shell.yield_strength if shell and shell.yield_strength else 210} MPa",
-            f"   - Elongation:         {shell.elongation_pct if shell and shell.elongation_pct else 0.8}%",
+            f"   - Hardness:           {hard_disp} BHN",
+            f"   - Tensile Strength:   {tens_disp} MPa",
+            f"   - Yield Strength:     {yield_disp} MPa",
+            f"   - Elongation:         {elong_disp}%",
             "",
             "6. LINKED ENGINEERING DOCUMENTS & QUALITY TICKETS:",
         ]
@@ -401,16 +438,16 @@ def download_job_bundle(
 
         zf.writestr(f"[JOB_{clean_job}]_FOUNDRY_INTELLIGENCE_DOSSIER.txt", "\n".join(summary_text))
 
-        # 2. Add actual document files with [JOB_XXX] prefix
-        added_names = set()
+        # 2. Add actual document files with [JOB_XXX] prefix (deduplicated)
+        added_paths = set()
         for d in docs:
             if d.file_path and Path(d.file_path).exists():
                 src_path = Path(d.file_path)
+                if str(src_path) in added_paths:
+                    continue
+                added_paths.add(str(src_path))
                 doc_kind = d.doc_type.replace("QDR_", "QDR_").replace("CASTING_LOG", "CastingLog")
                 archive_filename = f"[JOB_{clean_job}]_{doc_kind}_{src_path.name}"
-                if archive_filename in added_names:
-                    archive_filename = f"[JOB_{clean_job}]_{doc_kind}_{d.id}_{src_path.name}"
-                added_names.add(archive_filename)
                 zf.write(src_path, arcname=archive_filename)
 
     zip_buffer.seek(0)
@@ -443,6 +480,8 @@ def launch_document(doc_id: int, db: Session = Depends(get_db)):
     try:
         if sys.platform == "win32":
             os.startfile(str(file_path))
+        elif sys.platform == "darwin":
+            subprocess.Popen(["open", str(file_path)])
         else:
             subprocess.Popen(["xdg-open", str(file_path)])
         return {"status": "launched", "file": file_path.name}

@@ -811,25 +811,62 @@ function openShellInspectionModal(shellId) {
     // 1. Render 2D SVG
     render2DSVG(shell);
 
+    // Safe cut formatting helpers
+    const formatOdCut = (explicitCut, castVal, finishVal) => {
+        if (explicitCut !== undefined && explicitCut !== null && !isNaN(explicitCut)) {
+            const num = Number(explicitCut);
+            return `${num >= 0 ? '+' : ''}${num.toFixed(1)} mm / side`;
+        }
+        if (castVal && finishVal && !isNaN(castVal) && !isNaN(finishVal) && castVal >= finishVal) {
+            const cut = (castVal - finishVal) / 2.0;
+            return `+${cut.toFixed(1)} mm / side`;
+        }
+        return '—';
+    };
+
+    const formatIdCut = (explicitCut, castVal, finishVal) => {
+        if (explicitCut !== undefined && explicitCut !== null && !isNaN(explicitCut)) {
+            const num = Number(explicitCut);
+            return `${num >= 0 ? '+' : ''}${num.toFixed(1)} mm / side`;
+        }
+        if (castVal && finishVal && !isNaN(castVal) && !isNaN(finishVal) && finishVal >= castVal) {
+            const cut = (finishVal - castVal) / 2.0;
+            return `+${cut.toFixed(1)} mm / side`;
+        }
+        return '—';
+    };
+
+    const formatFaceCut = (explicitCut, castVal, finishVal) => {
+        if (explicitCut !== undefined && explicitCut !== null && !isNaN(explicitCut)) {
+            const num = Number(explicitCut);
+            return `${num >= 0 ? '+' : ''}${num.toFixed(1)} mm / end`;
+        }
+        if (castVal && finishVal && !isNaN(castVal) && !isNaN(finishVal) && castVal >= finishVal) {
+            const cut = (castVal - finishVal) / 2.0;
+            return `+${cut.toFixed(1)} mm / end`;
+        }
+        return '—';
+    };
+
     // 2. Render Dimensional Matrix Table
     DOM.modalDimTable.innerHTML = `
         <tr>
             <td><strong>Outer Diameter (OD)</strong></td>
             <td>${shell.od ? `${shell.od.toFixed(1)} mm` : '—'}</td>
             <td>${shell.cast_od ? `${shell.cast_od.toFixed(1)} mm` : '—'}</td>
-            <td>+${shell.od_cut_per_side || ((shell.cast_od - shell.od)/2).toFixed(1)} mm / side</td>
+            <td>${formatOdCut(shell.od_cut_per_side, shell.cast_od, shell.od)}</td>
         </tr>
         <tr>
             <td><strong>Inner Bore (ID)</strong></td>
             <td>${shell.id_dim ? `${shell.id_dim.toFixed(1)} mm` : '—'}</td>
             <td>${shell.cast_id ? `${shell.cast_id.toFixed(1)} mm` : '—'}</td>
-            <td>+${shell.id_cut_per_side || ((shell.id_dim - shell.cast_id)/2).toFixed(1)} mm / side</td>
+            <td>${formatIdCut(shell.id_cut_per_side, shell.cast_id, shell.id_dim)}</td>
         </tr>
         <tr>
             <td><strong>Length (L)</strong></td>
             <td>${shell.length ? `${shell.length.toFixed(1)} mm` : '—'}</td>
             <td>${shell.cast_length ? `${shell.cast_length.toFixed(1)} mm` : '—'}</td>
-            <td>+${shell.face_cut_per_end || ((shell.cast_length - shell.length)/2).toFixed(1)} mm / end</td>
+            <td>${formatFaceCut(shell.face_cut_per_end, shell.cast_length, shell.length)}</td>
         </tr>
         <tr>
             <td><strong>Wall Thickness</strong></td>

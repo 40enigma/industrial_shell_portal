@@ -26,7 +26,20 @@ from backend.services.normalizer import normalize_job_number, normalize_piece_nu
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-RAW_MQ_DIR = Path(r"d:\ML\Qadri ML project\Data For Project (Mill Roller Shell Data based)\M& Q 2025 Data")
+_workspace_root = PROJECT_ROOT.parent
+_candidate_parent = _workspace_root / "Data For Project (Mill Roller Shell Data based)"
+
+def _resolve_mq_dir(year: int = 2025) -> Path:
+    if _candidate_parent.exists():
+        for pat in [f"*M*Q*{year}*Data*", f"*MQ*{year}*", f"{year}/*M*Q*", f"{year}/*MQ*"]:
+            matches = list(_candidate_parent.glob(pat))
+            if matches:
+                return matches[0]
+        if (_candidate_parent / str(year)).exists():
+            return _candidate_parent / str(year)
+    return _candidate_parent / f"M& Q {year} Data"
+
+RAW_MQ_DIR = _resolve_mq_dir(2025)
 OUTPUT_DIR = PROJECT_ROOT / "data" / "processed"
 OUTPUT_FILE = OUTPUT_DIR / "all_lots_mq_mapping.json"
 
@@ -129,35 +142,52 @@ def calculate_wall_thickness(od: float | None, id_dim: float | None) -> float | 
 # Sub-Sheet Parser (Shell#1, Shell#2, etc.)
 # ---------------------------------------------------------------------------
 
-def parse_shell_subsheet_chemistry(wb: xlrd.Book, sheet_name: str) -> dict:
+def parse_shell_subsheet_chemistry(wb, sheet_name: str, is_openpyxl: bool = False) -> dict:
     """
     Parse per-shell worksheet for explicit chemistry or test measurements.
     Scans for %C, %Si, %Mn, %P, %S, %Cr, %Ni, %Mo, Hardness, and Tensile Strength.
+    Supports both xlrd and openpyxl workbooks.
     """
     chem_data = {}
-    if sheet_name not in wb.sheet_names():
+    sheet_names = wb.sheetnames if is_openpyxl else wb.sheet_names()
+    if sheet_name not in sheet_names:
         return chem_data
 
     try:
-        sh = wb.sheet_by_name(sheet_name)
-        for r in range(sh.nrows):
-            for c in range(sh.ncols):
-                val = str(sh.cell_value(r, c)).strip().lower()
-                # Scan for chemistry cells
-                if val in ["%c", "c%"]:
-                    if c + 1 < sh.ncols:
+        if is_openpyxl:
+            sh = wb[sheet_name]
+            max_r = min(sh.max_row or 50, 60)
+            max_c = min(sh.max_column or 20, 25)
+            for r in range(1, max_r + 1):
+                for c in range(1, max_c + 1):
+                    val = str(sh.cell(row=r, column=c).value or "").strip().lower()
+                    if val in ["%c", "c%"] and c < max_c:
+                        f = safe_float(sh.cell(row=r, column=c + 1).value)
+                        if f: chem_data["c_pct"] = f
+                    elif val in ["%si", "si%"] and c < max_c:
+                        f = safe_float(sh.cell(row=r, column=c + 1).value)
+                        if f: chem_data["si_pct"] = f
+                    elif val in ["%mn", "mn%"] and c < max_c:
+                        f = safe_float(sh.cell(row=r, column=c + 1).value)
+                        if f: chem_data["mn_pct"] = f
+                    elif ("hardness" in val or "bhn" in val) and c < max_c:
+                        f = safe_float(sh.cell(row=r, column=c + 1).value)
+                        if f: chem_data["hardness_bhn"] = f
+        else:
+            sh = wb.sheet_by_name(sheet_name)
+            for r in range(sh.nrows):
+                for c in range(sh.ncols):
+                    val = str(sh.cell_value(r, c)).strip().lower()
+                    if val in ["%c", "c%"] and c + 1 < sh.ncols:
                         f = safe_float(sh.cell_value(r, c + 1))
                         if f: chem_data["c_pct"] = f
-                elif val in ["%si", "si%"]:
-                    if c + 1 < sh.ncols:
+                    elif val in ["%si", "si%"] and c + 1 < sh.ncols:
                         f = safe_float(sh.cell_value(r, c + 1))
                         if f: chem_data["si_pct"] = f
-                elif val in ["%mn", "mn%"]:
-                    if c + 1 < sh.ncols:
+                    elif val in ["%mn", "mn%"] and c + 1 < sh.ncols:
                         f = safe_float(sh.cell_value(r, c + 1))
                         if f: chem_data["mn_pct"] = f
-                elif "hardness" in val or "bhn" in val:
-                    if c + 1 < sh.ncols:
+                    elif ("hardness" in val or "bhn" in val) and c + 1 < sh.ncols:
                         f = safe_float(sh.cell_value(r, c + 1))
                         if f: chem_data["hardness_bhn"] = f
     except Exception as e:
@@ -343,8 +373,8 @@ def parse_single_mq_workbook(filepath: Path, lot_dir_name: str, year: int = 2025
         meta_profile = get_metallurgy_profile(mat_raw)
 
         # Extract explicit subsheet measurements if available
-        if sheet_ref and not is_openpyxl:
-            explicit_chem = parse_shell_subsheet_chemistry(wb, sheet_ref)
+        if sheet_ref:
+            explicit_chem = parse_shell_subsheet_chemistry(wb, sheet_ref, is_openpyxl=is_openpyxl)
             meta_profile.update(explicit_chem)
 
         record = {

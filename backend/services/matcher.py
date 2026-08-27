@@ -53,6 +53,10 @@ def calculate_signed_deltas(
     actual_wt: float | None,
 ) -> dict:
     """Calculate signed deltas: Delta = Actual - Target."""
+    # Derive target wall thickness if not explicitly supplied
+    if target_wt is None and target_od is not None and target_id is not None and target_od > target_id:
+        target_wt = round((target_od - target_id) / 2.0, 2)
+
     def _format_delta(delta: float | None) -> str:
         if delta is None:
             return "—"
@@ -77,9 +81,9 @@ def calculate_signed_deltas(
 
 
 def calculate_machining_envelope(
-    target_od: float,
-    target_id: float,
-    target_length: float,
+    target_od: float | None,
+    target_id: float | None,
+    target_length: float | None,
     cast_od: float | None,
     cast_id: float | None,
     cast_length: float | None,
@@ -91,8 +95,27 @@ def calculate_machining_envelope(
     Evaluate if raw casting stock encloses target finish dimensions with allowances.
     Calculates stock removal cuts and volumetric Machining Yield %.
     """
-    if not cast_od or not cast_id or not cast_length:
-        return {"is_valid_envelope": False, "yield_pct": 0.0, "reason": "Missing as-cast dimensions"}
+    if not target_od or not target_id or not target_length or target_od <= 0 or target_id <= 0 or target_length <= 0:
+        return {
+            "is_valid_envelope": False,
+            "yield_pct": 0.0,
+            "od_cut_per_side": None,
+            "id_cut_per_side": None,
+            "face_cut_per_end": None,
+            "envelope_status": "NOT_SPECIFIED",
+            "envelope_notes": "Target finish dimensions not specified",
+        }
+
+    if not cast_od or not cast_id or not cast_length or cast_od <= 0 or cast_id <= 0 or cast_length <= 0:
+        return {
+            "is_valid_envelope": False,
+            "yield_pct": 0.0,
+            "od_cut_per_side": None,
+            "id_cut_per_side": None,
+            "face_cut_per_end": None,
+            "envelope_status": "MISSING_CAST_DIMS",
+            "envelope_notes": "Missing as-cast dimensions",
+        }
 
     min_required_od = target_od + 2.0 * od_allowance
     max_allowable_id = target_id - 2.0 * id_allowance
@@ -110,7 +133,6 @@ def calculate_machining_envelope(
     face_cut_per_end = round((cast_length - target_length) / 2.0, 2)
 
     # Volumetric Yield %
-    # Volume proportional to (OD^2 - ID^2) * Length
     target_vol = (target_od**2 - target_id**2) * target_length
     cast_vol = (cast_od**2 - cast_id**2) * cast_length
 
@@ -163,9 +185,10 @@ def search_shells(
 ) -> list[dict]:
     """Search shells by dimensional criteria, casting envelope, metallurgy, or keywords."""
     db_query = db.query(Shell).options(joinedload(Shell.documents))
+    mode = str(dimension_mode).lower() if isinstance(dimension_mode, str) else "finish"
+    sort_by_str = str(sort_by).lower() if isinstance(sort_by, str) else "confidence"
+    sort_order_str = str(sort_order).lower() if isinstance(sort_order, str) else "desc"
     filters = []
-
-    mode = dimension_mode.lower()
 
     if machining_mode and od and id_dim and length:
         # In Machining Envelope Mode: target dimensions define minimum raw casting stock
@@ -388,25 +411,31 @@ def search_shells(
             "documents": docs,
         })
 
-    # Sort results
-    reverse_sort = (sort_order.lower() == "desc")
-    sort_key = sort_by.lower()
+    # Sort results with nulls sorted last in both ascending and descending directions
+    reverse_sort = (sort_order_str == "desc")
+    sort_key = sort_by_str
+
+    def _sort_val(r, key, fallback=0.0):
+        v = r.get(key)
+        if v is None:
+            return float("-inf") if reverse_sort else float("inf")
+        return v
 
     if machining_mode or sort_key == "yield":
-        results.sort(key=lambda r: (r.get("yield_pct") or 0, r.get("confidence") or 0), reverse=reverse_sort)
+        results.sort(key=lambda r: (_sort_val(r, "yield_pct"), _sort_val(r, "confidence")), reverse=reverse_sort)
     elif sort_key == "od":
-        results.sort(key=lambda r: (r.get("od") or 0), reverse=reverse_sort)
+        results.sort(key=lambda r: _sort_val(r, "od"), reverse=reverse_sort)
     elif sort_key == "id":
-        results.sort(key=lambda r: (r.get("id_dim") or 0), reverse=reverse_sort)
+        results.sort(key=lambda r: _sort_val(r, "id_dim"), reverse=reverse_sort)
     elif sort_key == "length":
-        results.sort(key=lambda r: (r.get("length") or 0), reverse=reverse_sort)
+        results.sort(key=lambda r: _sort_val(r, "length"), reverse=reverse_sort)
     elif sort_key == "wall_thickness":
-        results.sort(key=lambda r: (r.get("wall_thickness") or 0), reverse=reverse_sort)
+        results.sort(key=lambda r: _sort_val(r, "wall_thickness"), reverse=reverse_sort)
     elif sort_key == "weight":
-        results.sort(key=lambda r: (r.get("weight") or 0), reverse=reverse_sort)
+        results.sort(key=lambda r: _sort_val(r, "weight"), reverse=reverse_sort)
     elif sort_key == "lot":
-        results.sort(key=lambda r: (r.get("lot_number") or 0), reverse=reverse_sort)
+        results.sort(key=lambda r: _sort_val(r, "lot_number"), reverse=reverse_sort)
     else:
-        results.sort(key=lambda r: (r.get("confidence") or 0, r.get("lot_number") or 0), reverse=reverse_sort)
+        results.sort(key=lambda r: (_sort_val(r, "confidence"), _sort_val(r, "lot_number")), reverse=reverse_sort)
 
     return results[:limit]

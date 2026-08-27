@@ -42,9 +42,13 @@ RAW_DIR = PROJECT_ROOT / "data" / "raw"
 OUTPUT_DIR = PROJECT_ROOT / "data" / "processed"
 OUTPUT_FILE = OUTPUT_DIR / "cleaned_casting_log_2025.json"
 
+_workspace_root = PROJECT_ROOT.parent
+ORIGINAL_DATA_DIR = _workspace_root / "Data For Project (Mill Roller Shell Data based)"
+
 CASTING_LOG_CANDIDATES = [
     RAW_DIR / "Actual Casting Log 2025.xlsx",
-    Path(r"d:\ML\Qadri ML project\Data For Project (Mill Roller Shell Data based)") / "Actual Casting Log 2025.xlsx",
+    ORIGINAL_DATA_DIR / "2025" / "Actual Casting Log 2025.xlsx",
+    ORIGINAL_DATA_DIR / "Actual Casting Log 2025.xlsx",
 ]
 
 
@@ -88,21 +92,53 @@ def safe_str(val) -> str | None:
     return s if s else None
 
 
+MONTH_ABBRS = {
+    "jan": "01", "feb": "02", "mar": "03", "apr": "04", "may": "05", "jun": "06",
+    "jul": "07", "aug": "08", "sep": "09", "oct": "10", "nov": "11", "dec": "12"
+}
+
+
 def format_date_str(val) -> str | None:
     """Normalize date value to YYYY-MM-DD string."""
     if val is None or val == "" or str(val).strip() == "None":
         return None
     if isinstance(val, (datetime.datetime, datetime.date)):
         return val.strftime("%Y-%m-%d")
+    
+    # Handle Excel float/int serial date (e.g. 45231 or 45231.0)
+    if isinstance(val, (int, float)) and 30000 <= val <= 65000:
+        try:
+            d = datetime.date(1899, 12, 30) + datetime.timedelta(days=int(val))
+            return d.strftime("%Y-%m-%d")
+        except Exception:
+            pass
+
     s = str(val).strip()
+    # Check if string is float serial date (e.g. '45231.0')
+    if re.match(r"^\d{5}(?:\.0+)?$", s):
+        try:
+            d = datetime.date(1899, 12, 30) + datetime.timedelta(days=int(float(s)))
+            return d.strftime("%Y-%m-%d")
+        except Exception:
+            pass
+
+    # Check for DD-Mon-YYYY (e.g. '02-Aug-2023' or '2-Aug-2023')
+    m = re.search(r"(\d{1,2})[-/\s]([A-Za-z]{3,9})[-/\s](\d{4})", s)
+    if m:
+        mon_str = m.group(2)[:3].lower()
+        if mon_str in MONTH_ABBRS:
+            return f"{m.group(3)}-{MONTH_ABBRS[mon_str]}-{int(m.group(1)):02d}"
+
     # Check for YYYY-MM-DD pattern
     m = re.search(r"(\d{4})[-/](\d{1,2})[-/](\d{1,2})", s)
     if m:
         return f"{m.group(1)}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
+
     # Check for DD-MM-YYYY pattern
     m = re.search(r"(\d{1,2})[-/](\d{1,2})[-/](\d{4})", s)
     if m:
         return f"{m.group(3)}-{int(m.group(2)):02d}-{int(m.group(1)):02d}"
+
     return s if len(s) >= 4 else None
 
 
@@ -458,8 +494,9 @@ def find_casting_log_file(custom_path: str | Path | None = None, year: int = 202
 
     candidates = [
         RAW_DIR / f"Actual Casting Log {year}.xlsx",
-        Path(r"d:\ML\Qadri ML project\Data For Project (Mill Roller Shell Data based)") / str(year) / f"Actual Casting Log {year}.xlsx",
-        Path(r"d:\ML\Qadri ML project\Data For Project (Mill Roller Shell Data based)") / f"Actual Casting Log {year}.xlsx",
+        ORIGINAL_DATA_DIR / str(year) / f"Actual Casting Log {year}.xlsx",
+        ORIGINAL_DATA_DIR / f"Actual Casting Log {year}.xlsx",
+        PROJECT_ROOT / "data" / "raw" / str(year) / f"Actual Casting Log {year}.xlsx",
     ]
 
     for candidate in candidates:

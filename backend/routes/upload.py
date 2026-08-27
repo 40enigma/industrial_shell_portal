@@ -176,14 +176,19 @@ async def upload_year_data(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save file: {e}")
 
-    # Extract ZIP
+    # Safely extract ZIP (Zip Slip protection)
     extract_dir = year_target_dir / f"extracted_{timestamp}"
     extract_dir.mkdir(parents=True, exist_ok=True)
+    resolved_base = extract_dir.resolve()
     try:
         with zipfile.ZipFile(zip_save_path, "r") as z:
+            for member in z.infolist():
+                member_path = (extract_dir / member.filename).resolve()
+                if not str(member_path).startswith(str(resolved_base)):
+                    raise ValueError(f"Illegal path traversal attempt in archive: {member.filename}")
             z.extractall(extract_dir)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to unzip archive: {e}")
+        raise HTTPException(status_code=400, detail=f"Failed to unzip archive safely: {e}")
 
     # Create IngestionBatch record
     batch = IngestionBatch(
