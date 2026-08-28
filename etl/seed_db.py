@@ -27,7 +27,8 @@ from database.db import engine, SessionLocal, init_db
 from database.models import Shell, Document, IngestionBatch
 from backend.services.normalizer import (
     normalize_job_number, extract_base_job, extract_all_job_tokens,
-    clean_alphanumeric, is_rollover_job
+    clean_alphanumeric, is_rollover_job,
+    normalize_material_standard, normalize_shell_type
 )
 from etl.parse_mq_files import get_metallurgy_profile
 
@@ -93,7 +94,7 @@ def seed_shells(
     token_to_shells: dict[str, list[int]] = {}
     drawing_to_shells: dict[str, list[int]] = {}
 
-    matched_casting_ids = set()
+    matched_casting_keys = set()
     count = 0
     casting_linked_count = 0
 
@@ -133,7 +134,8 @@ def seed_shells(
         shaft_fit = None
 
         if cast_match:
-            matched_casting_ids.add(id(cast_match))
+            _cast_key = (cast_match.get("job_number"), cast_match.get("lot_number"), cast_match.get("serial_number"))
+            matched_casting_keys.add(_cast_key)
             actual_wt = cast_match.get("actual_weight")
             if cast_match.get("job_card_weight") is not None:
                 job_card_wt = cast_match.get("job_card_weight")
@@ -151,12 +153,19 @@ def seed_shells(
             shaft_fit = cast_match.get("shaft_fitting")
             casting_linked_count += 1
 
+        mat_standard = normalize_material_standard(
+            rec.get("material_standard") or (cast_match.get("material_standard") if cast_match else None)
+        )
+        s_type = normalize_shell_type(
+            rec.get("shell_type") or (cast_match.get("shell_type") if cast_match else None)
+        )
+
         shell = Shell(
             job_number=job,
             piece_number=rec.get("piece_number"),
             shell_name=rec.get("shell_name"),
-            shell_type=rec.get("shell_type"),
-            material_standard=rec.get("material_standard"),
+            shell_type=s_type,
+            material_standard=mat_standard,
             drawing_number=rec.get("drawing_number"),
             idm_number=rec.get("idm_number"),
             lot_number=lot,
@@ -231,15 +240,12 @@ def seed_shells(
                 doc_type="CASTING_LOG",
                 doc_number=f"Lot#{lot}-CastSr#{serial or cast_match.get('serial_number')}",
                 file_path=c_path,
-                sheet_name=cast_match.get("sheet_name", "2025"),
+                sheet_name=cast_match.get("sheet_name") or str(rec.get("data_year", 2025)),
                 job_number=job,
                 piece_number=rec.get("piece_number"),
                 drawing_number=rec.get("drawing_number") or cast_match.get("drawing_number"),
                 doc_date=cast_date,
-                defect_description=(
-                    f"Actual Wt: {actual_wt} kg | Job Wt: {job_card_wt} kg | Diff: {wt_diff} kg | "
-                    f"Mold: {mold_proc} | Core: {core_proc} | Tech: {technology}"
-                ),
+                defect_description=None,
                 detected_at=f"Foundry Shifting / Casting ({month})" if month else "Foundry Shifting",
                 is_available=cast_file_exists,
                 status="LINKED",
@@ -269,15 +275,15 @@ def seed_shells(
     # 2. Ingest any remaining unmatched casting records (e.g. special castings / tooling pieces)
     unmatched_casting_added = 0
     for c in casting_records:
-        if id(c) in matched_casting_ids:
+        _cast_key = (c.get("job_number"), c.get("lot_number"), c.get("serial_number"))
+        if _cast_key in matched_casting_keys:
             continue
 
         c_job = c.get("job_number") or ""
-        mat_raw = c.get("material_standard")
+        mat_raw = normalize_material_standard(c.get("material_standard"))
         meta_profile = get_metallurgy_profile(mat_raw)
         c_path = c.get("file_path")
         cast_file_exists = Path(c_path).exists() if c_path else False
-
         actual_wt = c.get("actual_weight")
         job_card_wt = c.get("job_card_weight")
         calc_wt = c.get("calculated_weight")
@@ -287,7 +293,7 @@ def seed_shells(
             job_number=c_job,
             piece_number=c.get("piece_number"),
             shell_name=c.get("shell_name"),
-            shell_type=c.get("shell_type"),
+            shell_type=normalize_shell_type(c.get("shell_type")),
             material_standard=mat_raw,
             drawing_number=c.get("drawing_number"),
             idm_number=c.get("idm_number"),
@@ -344,15 +350,12 @@ def seed_shells(
             doc_type="CASTING_LOG",
             doc_number=f"Lot#{c.get('lot_number')}-CastSr#{c.get('serial_number')}",
             file_path=c_path,
-            sheet_name=c.get("sheet_name", "2025"),
+            sheet_name=c.get("sheet_name") or str(c.get("data_year", 2025)),
             job_number=c_job,
             piece_number=c.get("piece_number"),
             drawing_number=c.get("drawing_number"),
             doc_date=c.get("cast_date"),
-            defect_description=(
-                f"Actual Wt: {actual_wt} kg | Job Wt: {job_card_wt} kg | Diff: {wt_diff} kg | "
-                f"Mold: {c.get('mold_process')} | Core: {c.get('core_process')} | Tech: {c.get('technology')}"
-            ),
+            defect_description=None,
             detected_at=f"Foundry Shifting / Casting ({c.get('month')})" if c.get("month") else "Foundry Shifting",
             is_available=cast_file_exists,
             status="LINKED",
@@ -505,7 +508,7 @@ def seed_qdars(
     log.info(f"  QDAR Linked: Pass1={pass1_count}, Pass2={pass2_count}, Pass3={pass3_count} | Unlinked={unlinked_count}")
 
 
-def run_seed_pipeline(clear_existing: bool = True):
+def run_seed_pipeline(clear_existing: bool = True, year: int = 2025):
     """Run full schema recreation and database population with M&Q, Casting Log, and QDARS."""
     # Ensure processed files are up to date
     if not MQ_JSON.exists():
@@ -539,8 +542,8 @@ def run_seed_pipeline(clear_existing: bool = True):
         qdr_doc_count = session.query(Document).filter(Document.doc_type.in_(["QDR_EXTERNAL", "QDR_INTERNAL"])).count()
 
         batch = IngestionBatch(
-            year=2025,
-            filename="Initial 2025 Complete Dataset (M&Q, Actual Casting Log, QDARS)",
+            year=year,
+            filename=f"Initial {year} Complete Dataset (M&Q, Actual Casting Log, QDARS)",
             total_shells=shell_count,
             total_documents=doc_count,
             status="COMPLETED",

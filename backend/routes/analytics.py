@@ -29,8 +29,7 @@ DEFECT_PATTERNS = {
 
 
 def _unwrap(val, fallback=None):
-    if hasattr(val, "default"):
-        return val.default if val.default is not ... else fallback
+    """Return val if not None, else fallback."""
     return val if val is not None else fallback
 
 
@@ -194,8 +193,12 @@ def get_analytics_summary(
             "severity": severity,
         })
 
-    # Overall Quality Metrics
-    overall_defect_rate = round((qdr_count / total_shells * 100.0) if total_shells > 0 else 0, 1)
+    # Overall Quality Metrics (unique shells with ≥1 QDAR, not total QDAR count)
+    unique_defect_shell_ids = set()
+    for shell_id, _, _, _ in qdr_links:
+        if shell_id is not None:
+            unique_defect_shell_ids.add(shell_id)
+    overall_defect_rate = round((len(unique_defect_shell_ids) / total_shells * 100.0) if total_shells > 0 else 0, 1)
 
     # 4. Casting Intelligence & Weight Variance Analytics
     shells_with_act_wt_q = db.query(Shell).filter(Shell.actual_weight.isnot(None), Shell.actual_weight > 0)

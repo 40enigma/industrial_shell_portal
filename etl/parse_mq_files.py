@@ -21,7 +21,10 @@ import xlrd
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from backend.services.normalizer import normalize_job_number, normalize_piece_number
+from backend.services.normalizer import (
+    normalize_job_number, normalize_piece_number,
+    normalize_material_standard, normalize_shell_type
+)
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -300,9 +303,9 @@ def parse_single_mq_workbook(filepath: Path, lot_dir_name: str, year: int = 2025
                 col_map["piece"] = c
             elif "type" in v and "shell" in v:
                 col_map["shell_type"] = c
-            elif "job card" in v or "card wt" in v or (v.startswith("wt") and "cage" not in v):
+            elif "allowable" in v or "job card" in v:
                 col_map["weight"] = c
-            elif "material" in v or "standard" in v:
+            elif "material" in v or "composition" in v or ("standard" in v and "blank" not in v):
                 col_map["material_standard"] = c
 
     # 3. Section bounds for Finish and Casted dimensions
@@ -378,14 +381,8 @@ def parse_single_mq_workbook(filepath: Path, lot_dir_name: str, year: int = 2025
                     sheet_ref = sn
                     break
 
-        mat_raw = safe_str(get_cell(row_idx, col_map.get("material_standard", 23)))
-        shell_type_raw = safe_str(get_cell(row_idx, col_map.get("shell_type", 7)))
-
-        # Clean noise values from numeric template cells
-        if mat_raw and mat_raw.strip().isdigit():
-            mat_raw = "QAST-Alloy 2.0"
-        if shell_type_raw and shell_type_raw.strip().isdigit():
-            shell_type_raw = "MEFSA Technology"
+        mat_raw = normalize_material_standard(safe_str(get_cell(row_idx, col_map.get("material_standard", 23))))
+        shell_type_raw = normalize_shell_type(safe_str(get_cell(row_idx, col_map.get("shell_type", 7))))
 
         # Baseline metallurgy from material standard
         meta_profile = get_metallurgy_profile(mat_raw)

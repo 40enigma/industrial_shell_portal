@@ -108,3 +108,7 @@ def health():
     return {"status": "ok", "service": "Qadri Group — Industrial Shell Portal v3.5"}
 
 
+@app.get("/{full_path:path}", include_in_schema=False)
+def catch_all(full_path: str):
+    """Catch-all: serve index.html for any unmatched routes instead of a raw JSON 404."""
+    return FileResponse(str(FRONTEND_DIR / "index.html"))

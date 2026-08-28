@@ -94,31 +94,66 @@ INTERNAL_CELLS = {
 
 
 def _extract_fuzzy_fields_openpyxl(sh, record: dict):
-    """Scan top 35 rows for Job Number, QDAR number, Defect and Judgment if coordinates failed."""
-    if not record.get("job_number"):
-        for r in range(1, min(sh.max_row or 35, 35) + 1):
-            for c in range(1, min(sh.max_column or 15, 15) + 1):
-                val = str(sh.cell(row=r, column=c).value or "").strip()
+    """Scan top 35 rows for Job Number, Defect Judgment, and Description if coordinates failed."""
+    max_r = min(sh.max_row or 35, 40)
+    max_c = min(sh.max_column or 15, 15)
+    judgment_keywords = ["reject", "rework", "concession", "accept", "use as is"]
+
+    for r in range(1, max_r + 1):
+        for c in range(1, max_c + 1):
+            val = str(sh.cell(row=r, column=c).value or "").strip()
+            if not val:
+                continue
+            # Fuzzy job number extraction
+            if not record.get("job_number"):
                 m = re.search(r"([A-Z]{1,2}\d{2}-[A-Z0-9]{2,6}-\d{3,5})", val.upper())
                 if m:
                     record["job_number"] = m.group(1)
-                    break
-            if record.get("job_number"):
-                break
+            # Fuzzy judgment extraction
+            if not record.get("defect_judgment"):
+                val_lower = val.lower()
+                for kw in judgment_keywords:
+                    if kw in val_lower:
+                        record["defect_judgment"] = val
+                        break
+            # Fuzzy description extraction (look for labels)
+            if not record.get("defect_description"):
+                val_lower = val.lower()
+                if "defect" in val_lower and ("desc" in val_lower or "detail" in val_lower or "nature" in val_lower):
+                    # Read the cell to the right or below as the actual description
+                    right_val = safe_str(sh.cell(row=r, column=c + 1).value) if c < max_c else None
+                    below_val = safe_str(sh.cell(row=r + 1, column=c).value) if r < max_r else None
+                    record["defect_description"] = right_val or below_val
 
 
 def _extract_fuzzy_fields_xlrd(sh, record: dict):
-    """Scan top 35 rows for Job Number if coordinates failed."""
-    if not record.get("job_number"):
-        for r in range(min(sh.nrows, 35)):
-            for c in range(min(sh.ncols, 15)):
-                val = str(sh.cell_value(r, c)).strip()
+    """Scan top 35 rows for Job Number, Defect Judgment, and Description if coordinates failed."""
+    judgment_keywords = ["reject", "rework", "concession", "accept", "use as is"]
+
+    for r in range(min(sh.nrows, 40)):
+        for c in range(min(sh.ncols, 15)):
+            val = str(sh.cell_value(r, c)).strip()
+            if not val:
+                continue
+            # Fuzzy job number extraction
+            if not record.get("job_number"):
                 m = re.search(r"([A-Z]{1,2}\d{2}-[A-Z0-9]{2,6}-\d{3,5})", val.upper())
                 if m:
                     record["job_number"] = m.group(1)
-                    break
-            if record.get("job_number"):
-                break
+            # Fuzzy judgment extraction
+            if not record.get("defect_judgment"):
+                val_lower = val.lower()
+                for kw in judgment_keywords:
+                    if kw in val_lower:
+                        record["defect_judgment"] = val
+                        break
+            # Fuzzy description extraction
+            if not record.get("defect_description"):
+                val_lower = val.lower()
+                if "defect" in val_lower and ("desc" in val_lower or "detail" in val_lower or "nature" in val_lower):
+                    right_val = safe_str(sh.cell_value(r, c + 1)) if c + 1 < sh.ncols else None
+                    below_val = safe_str(sh.cell_value(r + 1, c)) if r + 1 < sh.nrows else None
+                    record["defect_description"] = right_val or below_val
 
 
 def parse_xlsx_qdar(filepath: Path, cell_map: dict, doc_subtype: str, year: int = 2025) -> dict | None:
@@ -145,6 +180,20 @@ def parse_xlsx_qdar(filepath: Path, cell_map: dict, doc_subtype: str, year: int 
                 record[field] = None
 
         _extract_fuzzy_fields_openpyxl(sh, record)
+
+        # Multi-row defect description: read up to 5 rows starting from the coordinate
+        desc_coord = cell_map.get("defect_description")
+        if desc_coord and record.get("defect_description"):
+            desc_r, desc_c = desc_coord
+            parts = [record["defect_description"]]
+            for extra_r in range(desc_r + 1, min(desc_r + 5, (sh.max_row or desc_r) + 1)):
+                extra_val = safe_str(sh.cell(row=extra_r, column=desc_c).value)
+                if extra_val and len(extra_val) > 2:
+                    parts.append(extra_val)
+                else:
+                    break
+            if len(parts) > 1:
+                record["defect_description"] = " | ".join(parts)
 
         wb.close()
 

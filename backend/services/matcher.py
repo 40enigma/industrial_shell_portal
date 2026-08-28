@@ -13,7 +13,7 @@ Features:
 4. Multi-parameter filtering, sorting, and document defect bundling.
 """
 import math
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, subqueryload
 from sqlalchemy import and_, or_
 from database.models import Shell, Document
 
@@ -195,7 +195,7 @@ def search_shells(
     limit: int = 100,
 ) -> list[dict]:
     """Search shells by dimensional criteria, casting envelope, metallurgy, or keywords."""
-    db_query = db.query(Shell).options(joinedload(Shell.documents))
+    db_query = db.query(Shell).options(subqueryload(Shell.documents))
     mode = str(dimension_mode).lower() if isinstance(dimension_mode, str) else "finish"
     sort_by_str = str(sort_by).lower() if isinstance(sort_by, str) else "confidence"
     sort_order_str = str(sort_order).lower() if isinstance(sort_order, str) else "desc"

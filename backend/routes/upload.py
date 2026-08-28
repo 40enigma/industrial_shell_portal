@@ -69,7 +69,14 @@ def _resolve_data_root(extract_dir: Path, year: int, max_depth: int = 4) -> Path
 
 def run_background_ingestion(batch_id: int, year: int, extract_dir: Path):
     """Background worker that executes extraction, parsing, and seeding."""
-    db: Session = SessionLocal()
+    # Use a separate session with a longer timeout to avoid 'database is locked'
+    # during long-running ETL operations while the main app serves read queries.
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from database.db import SQLALCHEMY_DATABASE_URL
+    bg_engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False, "timeout": 120})
+    BgSession = sessionmaker(bind=bg_engine)
+    db: Session = BgSession()
     batch = db.query(IngestionBatch).filter(IngestionBatch.id == batch_id).first()
     if not batch:
         db.close()
@@ -97,18 +104,16 @@ def run_background_ingestion(batch_id: int, year: int, extract_dir: Path):
         # Check for Casting Log workbooks
         casting_records = []
         cast_candidates = (
-            list(data_root.glob(f"*Casting*{year}*.xls*")) +
-            list(data_root.glob(f"*casting*{year}*.xls*")) +
-            list(data_root.glob(f"*Log*{year}*.xls*")) +
-            list(data_root.glob("*Casting*.xls*")) +
-            list(data_root.glob("*casting*.xls*")) +
-            list(data_root.glob("*Log*.xls*")) +
-            list(data_root.rglob(f"*Casting*{year}*.xls*")) +
-            list(data_root.rglob(f"*casting*{year}*.xls*")) +
-            list(data_root.rglob(f"*Log*{year}*.xls*")) +
-            list(data_root.rglob("*Casting*.xls*")) +
-            list(data_root.rglob("*casting*.xls*")) +
-            list(data_root.rglob("*Log*.xls*"))
+            list(data_root.glob(f"*Casting*Log*{year}*.xls*")) +
+            list(data_root.glob(f"*casting*log*{year}*.xls*")) +
+            list(data_root.glob(f"*Actual*Casting*{year}*.xls*")) +
+            list(data_root.glob("*Casting*Log*.xls*")) +
+            list(data_root.glob("*casting*log*.xls*")) +
+            list(data_root.rglob(f"*Casting*Log*{year}*.xls*")) +
+            list(data_root.rglob(f"*casting*log*{year}*.xls*")) +
+            list(data_root.rglob(f"*Actual*Casting*{year}*.xls*")) +
+            list(data_root.rglob("*Casting*Log*.xls*")) +
+            list(data_root.rglob("*casting*log*.xls*"))
         )
         seen_paths = set()
         for cast_candidate in cast_candidates:

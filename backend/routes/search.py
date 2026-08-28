@@ -14,8 +14,7 @@ router = APIRouter(prefix="/api", tags=["search"])
 
 
 def _unwrap(val, fallback=None):
-    if hasattr(val, "default"):
-        return val.default if val.default is not ... else fallback
+    """Return val if not None, else fallback."""
     return val if val is not None else fallback
 
 

@@ -106,3 +106,40 @@ def is_rollover_job(job_number: str | None, filename: str | None = None) -> bool
     """Check if job or filename originated in an earlier year batch."""
     combined = f"{job_number or ''} {filename or ''}".upper()
     return any(combined.startswith(p) or f" {p}" in combined or f"-{p}" in combined for p in ROLLOVER_PREFIXES)
+
+
+def normalize_material_standard(raw: str | None) -> str | None:
+    """
+    Normalize material standard / alloy string to canonical form.
+    Filters out dates, pure numbers, and generic remarks.
+    """
+    if not raw:
+        return None
+    s = str(raw).strip()
+    # Filter out dates, pure numbers, or generic remarks
+    if re.match(r"^\d{4}-\d{2}-\d{2}", s) or s.isdigit() or s.lower() in ("with in range", "within range", "none", "-", "nan", "null"):
+        return None
+    s_lower = s.lower()
+    if "qast" in s_lower and "alloy" in s_lower:
+        return "QAST-Alloy 2.0"
+    if "c.i" in s_lower or "roller shell" in s_lower or "mill roller" in s_lower:
+        return "C.I (Mill Roller Shells) 2017 (STD)"
+    return s
+
+
+def normalize_shell_type(raw: str | None) -> str | None:
+    """
+    Normalize shell type and fix common typographical variations.
+    """
+    if not raw:
+        return None
+    s = str(raw).strip()
+    if s.isdigit() or s.lower() in ("none", "-", "nan", "null"):
+        return None
+    s_lower = s.lower()
+    if "mesfa" in s_lower:
+        return "MEFSA Technology"
+    if "hallow" in s_lower:
+        return s.replace("Hallow", "Hollow").replace("hallow", "Hollow")
+    return s
+

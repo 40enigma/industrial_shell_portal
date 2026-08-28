@@ -28,7 +28,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from backend.services.normalizer import (
-    normalize_job_number, normalize_piece_number, extract_base_job
+    normalize_job_number, normalize_piece_number, extract_base_job,
+    normalize_material_standard, normalize_shell_type
 )
 
 logging.basicConfig(
@@ -230,7 +231,17 @@ def parse_casting_log(filepath: Path | str, year: int = 2025) -> list[dict]:
                 target_sheet = wb.sheetnames[0]
             sheet = wb[target_sheet]
             log.info(f"Parsing sheet: '{target_sheet}'...")
-            rows = list(sheet.iter_rows(values_only=True))
+            rows = []
+            empty_streak = 0
+            for r_val in sheet.iter_rows(values_only=True):
+                if any(v is not None for v in r_val):
+                    rows.append(r_val)
+                    empty_streak = 0
+                else:
+                    empty_streak += 1
+                    if empty_streak > 30:
+                        break
+            wb.close()
         except Exception as e:
             log.error(f"Failed to open workbook {path}: {e}")
             return []
@@ -241,7 +252,7 @@ def parse_casting_log(filepath: Path | str, year: int = 2025) -> list[dict]:
     ]
 
     header_rows_idx = []
-    for r_idx in range(min(6, len(rows))):
+    for r_idx in range(min(10, len(rows))):
         row = rows[r_idx]
         row_vals = [str(v or "").strip() for v in row]
         row_str = " ".join(row_vals).lower()
@@ -275,22 +286,22 @@ def parse_casting_log(filepath: Path | str, year: int = 2025) -> list[dict]:
             elif "job no" in v or "job #" in v or (v.startswith("job") and "wt" not in v and "card" not in v): col_map["job_number"] = c
             elif (v == "name" or "shell name" in v or "item name" in v) and "drawing" not in v: col_map["name"] = c
             elif "drawing" in v: col_map["drawing"] = c
-            elif "type" in v and "shell" in v: col_map["shell_type"] = c
+            elif ("type" in v and "shell" in v) or v == "shell type": col_map["shell_type"] = c
             elif "piece" in v: col_map["piece"] = c
-            elif ("actual wt" in v or "act wt" in v or "act. wt" in v or v == "actual") and "cage" not in v: col_map["actual_weight"] = c
-            elif "job card wt" in v or "card wt" in v or (v.startswith("wt") and "cage" not in v): col_map["job_card_weight"] = c
-            elif "calc" in v and "wt" in v: col_map["calc_weight"] = c
-            elif "pattern" in v: col_map["pattern_ca"] = c
+            elif ("actual" in v and ("wt" in v or "weight" in v)) and "diff" not in v and "cage" not in v and "hook" not in v and "soft" not in v and "date" not in v: col_map["actual_weight"] = c
+            elif ("allowable" in v or "job card" in v) and "extra" not in v and "diff" not in v: col_map["job_card_weight"] = c
+            elif ("calc" in v or "estim" in v) and ("wt" in v or "weight" in v): col_map["calc_weight"] = c
+            elif "pattern" in v and "wt" not in v: col_map["pattern_ca"] = c
             elif "core box" in v or "core  box" in v: col_map["core_box"] = c
             elif "riser" in v: col_map["riser_pct"] = c
             elif "simulation" in v: col_map["simulation_path"] = c
             elif "diff" in v and ("act" in v or "job" in v): col_map["weight_diff"] = c
             elif "shifting" in v or "acutal" in v or "cast date" in v or "actual date" in v: col_map["cast_date"] = c
-            elif "material" in v or "standard" in v: col_map["mat_standard"] = c
+            elif "material" in v or "composition" in v or ("standard" in v and "blank" not in v and "shell" not in v): col_map["mat_standard"] = c
             elif "technology" in v: col_map["technology"] = c
             elif "shaft" in v and "fitting" in v: col_map["shaft_fitting"] = c
             elif v == "core" or "core process" in v or "core sand" in v: col_map["core_process"] = c
-            elif v == "mold" or v == "mould" or "mold process" in v or "molding process" in v: col_map["mold_process"] = c
+            elif v in ("mold", "mould", "molding", "moulding") or "mold process" in v or "molding process" in v: col_map["mold_process"] = c
 
     # Find Finish & Casted dimensional column bounds
     finish_start, cast_start = None, None
@@ -372,7 +383,7 @@ def parse_casting_log(filepath: Path | str, year: int = 2025) -> list[dict]:
         draw_col = col_map.get("drawing", 6)
         drawing_number = safe_str(row[draw_col]) if len(row) > draw_col else None
         type_col = col_map.get("shell_type", 7)
-        shell_type = safe_str(row[type_col]) if len(row) > type_col else None
+        shell_type = normalize_shell_type(safe_str(row[type_col])) if len(row) > type_col else None
         pc_col = col_map.get("piece", 8)
         piece_number = normalize_piece_number(safe_str(row[pc_col])) if len(row) > pc_col else None
 
@@ -432,7 +443,7 @@ def parse_casting_log(filepath: Path | str, year: int = 2025) -> list[dict]:
         core_c = col_map.get("core_process", 46)
         mold_c = col_map.get("mold_process", 47)
         cast_date = format_date_str(row[dt_c]) if len(row) > dt_c else None
-        mat_standard = safe_str(row[mat_c]) if len(row) > mat_c else None
+        mat_standard = normalize_material_standard(safe_str(row[mat_c])) if len(row) > mat_c else None
         technology = safe_str(row[tech_c]) if len(row) > tech_c else None
         shaft_fitting = safe_str(row[shaft_c]) if len(row) > shaft_c else None
         core_process = normalize_process_name(safe_str(row[core_c])) if len(row) > core_c else None

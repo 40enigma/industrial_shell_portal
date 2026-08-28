@@ -102,11 +102,12 @@ def list_shell_files(shell_id: int, db: Session = Depends(get_db)):
 
 @router.get("/job/{job_number}/files")
 def list_job_files(job_number: str, db: Session = Depends(get_db)):
-    """List all original source files linked to a specific Job Number."""
-    shell = db.query(Shell).filter(Shell.job_number == job_number).first()
+    """List all original source files linked to a specific Job Number (across all pieces)."""
+    shells = db.query(Shell).filter(Shell.job_number == job_number).all()
+    shell = shells[0] if shells else None
     query_filters = [Document.job_number == job_number]
-    if shell:
-        query_filters.append(Document.shell_id == shell.id)
+    for s in shells:
+        query_filters.append(Document.shell_id == s.id)
 
     docs = db.query(Document).filter(or_(*query_filters)).all()
 
@@ -127,6 +128,7 @@ def list_job_files(job_number: str, db: Session = Depends(get_db)):
         "shell_name": shell.shell_name if shell else None,
         "lot_number": shell.lot_number if shell else None,
         "material_standard": shell.material_standard if shell else None,
+        "total_pieces": len(shells),
         "total_files": len(files),
         "available_files": sum(1 for f in files if f["is_available"]),
         "files": files,
@@ -480,12 +482,25 @@ def launch_document(doc_id: int, db: Session = Depends(get_db)):
     if not doc.file_path:
         raise HTTPException(status_code=404, detail="No file path associated with document")
 
-    file_path = Path(doc.file_path)
+    file_path = Path(doc.file_path).resolve()
+
+    # Validate the path is under an allowed data directory
+    project_root = Path(__file__).resolve().parent.parent.parent
+    allowed_roots = [
+        project_root / "data",
+        project_root.parent / "Data For Project (Mill Roller Shell Data based)",
+    ]
+    if not any(str(file_path).startswith(str(root.resolve())) for root in allowed_roots if root.exists()):
+        raise HTTPException(status_code=403, detail="File path is outside allowed data directories")
+
     if not file_path.exists():
         raise HTTPException(
             status_code=404,
             detail=doc.unavailable_reason or "File not found on disk",
         )
+
+    if file_path.suffix.lower() not in (".xls", ".xlsx", ".pdf", ".csv"):
+        raise HTTPException(status_code=403, detail="Only Excel, PDF, and CSV files can be launched")
 
     try:
         if sys.platform == "win32":
