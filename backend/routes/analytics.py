@@ -8,7 +8,7 @@ Provides:
 4. Key Manufacturing KPI Summary
 """
 import re
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from database.db import get_db
@@ -28,12 +28,30 @@ DEFECT_PATTERNS = {
 }
 
 
+def _unwrap(val, fallback=None):
+    if hasattr(val, "default"):
+        return val.default if val.default is not ... else fallback
+    return val if val is not None else fallback
+
+
 @router.get("/summary")
-def get_analytics_summary(db: Session = Depends(get_db)):
-    """Generate comprehensive quality and defect intelligence analytics."""
-    total_shells = db.query(Shell).count()
-    total_docs = db.query(Document).count()
-    qdr_docs = db.query(Document).filter(Document.doc_type.in_(["QDR_EXTERNAL", "QDR_INTERNAL"])).all()
+def get_analytics_summary(
+    year: int | None = Query(None, description="Optional manufacturing year filter (e.g. 2023, 2024, 2025, 2026)"),
+    db: Session = Depends(get_db),
+):
+    """Generate comprehensive quality and defect intelligence analytics, optionally filtered by year."""
+    target_year = _unwrap(year)
+
+    shell_base = db.query(Shell)
+    doc_base = db.query(Document)
+
+    if target_year is not None:
+        shell_base = shell_base.filter(Shell.data_year == target_year)
+        doc_base = doc_base.filter(Document.data_year == target_year)
+
+    total_shells = shell_base.count()
+    total_docs = doc_base.count()
+    qdr_docs = doc_base.filter(Document.doc_type.in_(["QDR_EXTERNAL", "QDR_INTERNAL"])).all()
     qdr_count = len(qdr_docs)
 
     # 1. Defect Category Pareto Breakdown
@@ -83,29 +101,34 @@ def get_analytics_summary(db: Session = Depends(get_db)):
             item["cumulative_pct"] = round(min(100.0, cum), 1)
 
     # 2. Alloy Rejection & Rework Rates and 3. Lot Heatmap (Optimized SQL Aggregation)
+    alloy_query = db.query(Shell.material_standard, func.count(Shell.id)).filter(Shell.material_standard.isnot(None))
+    lot_query = db.query(Shell.lot_number, func.count(Shell.id)).filter(Shell.lot_number.isnot(None))
+    if target_year is not None:
+        alloy_query = alloy_query.filter(Shell.data_year == target_year)
+        lot_query = lot_query.filter(Shell.data_year == target_year)
+
     alloy_total_map = {
-        mat: count for mat, count in db.query(Shell.material_standard, func.count(Shell.id))
-        .filter(Shell.material_standard.isnot(None))
-        .group_by(Shell.material_standard).all()
+        mat: count for mat, count in alloy_query.group_by(Shell.material_standard).all()
         if mat and not mat.isdigit()
     }
 
     lot_total_map = {
-        lot: count for lot, count in db.query(Shell.lot_number, func.count(Shell.id))
-        .filter(Shell.lot_number.isnot(None))
-        .group_by(Shell.lot_number).all()
+        lot: count for lot, count in lot_query.group_by(Shell.lot_number).all()
         if lot is not None
     }
 
     # Fetch all linked QDR defect documents with shell attributes in a single fast JOIN query
-    qdr_links = db.query(
+    qdr_links_query = db.query(
         Document.shell_id,
         Document.defect_judgment,
         Shell.material_standard,
         Shell.lot_number
     ).join(Shell, Document.shell_id == Shell.id).filter(
         Document.doc_type.in_(["QDR_EXTERNAL", "QDR_INTERNAL"])
-    ).all()
+    )
+    if target_year is not None:
+        qdr_links_query = qdr_links_query.filter(Shell.data_year == target_year)
+    qdr_links = qdr_links_query.all()
 
     # Aggregate by alloy
     alloy_data = {mat: {"qdr_count": 0, "reject_count": 0, "rework_count": 0, "shell_ids": set()} for mat in alloy_total_map}
@@ -175,7 +198,10 @@ def get_analytics_summary(db: Session = Depends(get_db)):
     overall_defect_rate = round((qdr_count / total_shells * 100.0) if total_shells > 0 else 0, 1)
 
     # 4. Casting Intelligence & Weight Variance Analytics
-    shells_with_act_wt = db.query(Shell).filter(Shell.actual_weight.isnot(None), Shell.actual_weight > 0).all()
+    shells_with_act_wt_q = db.query(Shell).filter(Shell.actual_weight.isnot(None), Shell.actual_weight > 0)
+    if target_year is not None:
+        shells_with_act_wt_q = shells_with_act_wt_q.filter(Shell.data_year == target_year)
+    shells_with_act_wt = shells_with_act_wt_q.all()
     total_act_wt_kg = sum(s.actual_weight for s in shells_with_act_wt)
     
     # Calculate job allowable weight for shells that have target weights
@@ -210,11 +236,14 @@ def get_analytics_summary(db: Session = Depends(get_db)):
         "7": "Jul", "07": "Jul", "8": "Aug", "08": "Aug", "9": "Sep", "09": "Sep",
         "10": "Oct", "11": "Nov", "12": "Dec",
     }
-    monthly_raw = db.query(
+    monthly_raw_q = db.query(
         Shell.month,
         func.count(Shell.id),
         func.sum(Shell.actual_weight)
-    ).filter(Shell.month.isnot(None)).group_by(Shell.month).all()
+    ).filter(Shell.month.isnot(None))
+    if target_year is not None:
+        monthly_raw_q = monthly_raw_q.filter(Shell.data_year == target_year)
+    monthly_raw = monthly_raw_q.group_by(Shell.month).all()
 
     monthly_map = {}
     for m in monthly_raw:
@@ -237,13 +266,20 @@ def get_analytics_summary(db: Session = Depends(get_db)):
             monthly_stats.append(item)
 
     # Molding & Core Process Breakdown
-    mold_raw = db.query(Shell.mold_process, func.count(Shell.id)).filter(Shell.mold_process.isnot(None)).group_by(Shell.mold_process).all()
+    mold_raw_q = db.query(Shell.mold_process, func.count(Shell.id)).filter(Shell.mold_process.isnot(None))
+    core_raw_q = db.query(Shell.core_process, func.count(Shell.id)).filter(Shell.core_process.isnot(None))
+    if target_year is not None:
+        mold_raw_q = mold_raw_q.filter(Shell.data_year == target_year)
+        core_raw_q = core_raw_q.filter(Shell.data_year == target_year)
+    mold_raw = mold_raw_q.group_by(Shell.mold_process).all()
+    core_raw = core_raw_q.group_by(Shell.core_process).all()
     mold_breakdown = [{"process": m[0], "count": m[1]} for m in mold_raw if m[0]]
-
-    core_raw = db.query(Shell.core_process, func.count(Shell.id)).filter(Shell.core_process.isnot(None)).group_by(Shell.core_process).all()
     core_breakdown = [{"process": c[0], "count": c[1]} for c in core_raw if c[0]]
 
-    technology_raw = db.query(Shell.technology, func.count(Shell.id)).filter(Shell.technology.isnot(None)).group_by(Shell.technology).all()
+    tech_raw_q = db.query(Shell.technology, func.count(Shell.id)).filter(Shell.technology.isnot(None))
+    if target_year is not None:
+        tech_raw_q = tech_raw_q.filter(Shell.data_year == target_year)
+    technology_raw = tech_raw_q.group_by(Shell.technology).all()
     tech_breakdown = [{"technology": t[0], "count": t[1]} for t in technology_raw if t[0]]
     tech_breakdown.sort(key=lambda x: x["count"], reverse=True)
 

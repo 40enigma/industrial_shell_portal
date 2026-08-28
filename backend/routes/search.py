@@ -105,42 +105,65 @@ def search(
 @router.get("/filters")
 def get_filters(db: Session = Depends(get_db)):
     """Return distinct dropdown filter options for the frontend UI."""
-    materials = [
-        m[0] for m in db.query(Shell.material_standard).distinct().order_by(Shell.material_standard).all()
-        if m[0] and not m[0].strip().isdigit() and len(m[0].strip()) > 1
-    ]
+    seen_mat = set()
+    materials = []
+    for m in db.query(Shell.material_standard).distinct().all():
+        if m[0]:
+            clean = m[0].strip()
+            if clean and not clean.isdigit() and len(clean) > 1 and clean.lower() not in seen_mat:
+                seen_mat.add(clean.lower())
+                materials.append(clean)
+    materials.sort()
 
-    shell_types = [
-        st[0] for st in db.query(Shell.shell_type).distinct().order_by(Shell.shell_type).all()
-        if st[0] and not st[0].strip().isdigit() and len(st[0].strip()) > 1
-    ]
+    seen_st = set()
+    shell_types = []
+    for st in db.query(Shell.shell_type).distinct().all():
+        if st[0]:
+            clean = st[0].strip()
+            if clean and not clean.isdigit() and len(clean) > 1 and clean.lower() not in seen_st:
+                seen_st.add(clean.lower())
+                shell_types.append(clean)
+    shell_types.sort()
 
-    lots = [
-        lot[0] for lot in db.query(Shell.lot_number).distinct().order_by(Shell.lot_number).all()
+    lots = sorted([
+        lot[0] for lot in db.query(Shell.lot_number).distinct().all()
         if lot[0] is not None
-    ]
+    ])
 
-    years = [
-        yr[0] for yr in db.query(Shell.data_year).distinct().order_by(Shell.data_year.desc()).all()
+    years = sorted([
+        yr[0] for yr in db.query(Shell.data_year).distinct().all()
         if yr[0] is not None
-    ]
+    ], reverse=True)
 
-    mold_processes = [
-        mp[0] for mp in db.query(Shell.mold_process).distinct().order_by(Shell.mold_process).all()
-        if mp[0]
-    ]
+    seen_mp = set()
+    mold_processes = []
+    for mp in db.query(Shell.mold_process).distinct().all():
+        if mp[0]:
+            clean = mp[0].strip()
+            if clean and clean.lower() not in seen_mp:
+                seen_mp.add(clean.lower())
+                mold_processes.append(clean)
+    mold_processes.sort()
 
-    core_processes = [
-        cp[0] for cp in db.query(Shell.core_process).distinct().order_by(Shell.core_process).all()
-        if cp[0]
-    ]
+    seen_cp = set()
+    core_processes = []
+    for cp in db.query(Shell.core_process).distinct().all():
+        if cp[0]:
+            clean = cp[0].strip()
+            if clean and clean.lower() not in seen_cp:
+                seen_cp.add(clean.lower())
+                core_processes.append(clean)
+    core_processes.sort()
 
     month_order = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-    raw_months = [
-        m[0] for m in db.query(Shell.month).distinct().all()
-        if m[0]
-    ]
-    # Sort months by calendar order if possible
+    seen_m = set()
+    raw_months = []
+    for m in db.query(Shell.month).distinct().all():
+        if m[0]:
+            clean = m[0].strip()
+            if clean and clean.lower() not in seen_m:
+                seen_m.add(clean.lower())
+                raw_months.append(clean)
     months = sorted(
         raw_months,
         key=lambda m: (month_order.index(m) if m in month_order else (month_order.index(m[:3].capitalize()) if m[:3].capitalize() in month_order else 99), m)

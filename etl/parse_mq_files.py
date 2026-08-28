@@ -145,13 +145,29 @@ def calculate_wall_thickness(od: float | None, id_dim: float | None) -> float | 
 def parse_shell_subsheet_chemistry(wb, sheet_name: str, is_openpyxl: bool = False) -> dict:
     """
     Parse per-shell worksheet for explicit chemistry or test measurements.
-    Scans for %C, %Si, %Mn, %P, %S, %Cr, %Ni, %Mo, Hardness, and Tensile Strength.
-    Supports both xlrd and openpyxl workbooks.
+    Scans for %C, %Si, %Mn, %P, %S, %Cr, %Ni, %Mo, Hardness, Tensile Strength, Yield Strength, and Elongation.
+    Supports both horizontal (row, col+1) and vertical (row+1, col) cell layouts in xlrd and openpyxl.
     """
     chem_data = {}
     sheet_names = wb.sheetnames if is_openpyxl else wb.sheet_names()
     if sheet_name not in sheet_names:
         return chem_data
+
+    # Map aliases to property keys
+    elem_map = {
+        "%c": "c_pct", "c%": "c_pct", "c": "c_pct", "carbon": "c_pct",
+        "%si": "si_pct", "si%": "si_pct", "si": "si_pct", "silicon": "si_pct",
+        "%mn": "mn_pct", "mn%": "mn_pct", "mn": "mn_pct", "manganese": "mn_pct",
+        "%p": "p_pct", "p%": "p_pct", "p": "p_pct", "phosphorus": "p_pct",
+        "%s": "s_pct", "s%": "s_pct", "s": "s_pct", "sulfur": "s_pct", "sulphur": "s_pct",
+        "%cr": "cr_pct", "cr%": "cr_pct", "cr": "cr_pct", "chromium": "cr_pct",
+        "%ni": "ni_pct", "ni%": "ni_pct", "ni": "ni_pct", "nickel": "ni_pct",
+        "%mo": "mo_pct", "mo%": "mo_pct", "mo": "mo_pct", "molybdenum": "mo_pct",
+        "hardness": "hardness_bhn", "bhn": "hardness_bhn", "hb": "hardness_bhn",
+        "tensile": "tensile_strength", "uts": "tensile_strength", "tensile strength": "tensile_strength",
+        "yield": "yield_strength", "ys": "yield_strength", "yield strength": "yield_strength",
+        "elongation": "elongation_pct", "elong": "elongation_pct", "%el": "elongation_pct", "el%": "elongation_pct",
+    }
 
     try:
         if is_openpyxl:
@@ -160,36 +176,36 @@ def parse_shell_subsheet_chemistry(wb, sheet_name: str, is_openpyxl: bool = Fals
             max_c = min(sh.max_column or 20, 25)
             for r in range(1, max_r + 1):
                 for c in range(1, max_c + 1):
-                    val = str(sh.cell(row=r, column=c).value or "").strip().lower()
-                    if val in ["%c", "c%"] and c < max_c:
-                        f = safe_float(sh.cell(row=r, column=c + 1).value)
-                        if f: chem_data["c_pct"] = f
-                    elif val in ["%si", "si%"] and c < max_c:
-                        f = safe_float(sh.cell(row=r, column=c + 1).value)
-                        if f: chem_data["si_pct"] = f
-                    elif val in ["%mn", "mn%"] and c < max_c:
-                        f = safe_float(sh.cell(row=r, column=c + 1).value)
-                        if f: chem_data["mn_pct"] = f
-                    elif ("hardness" in val or "bhn" in val) and c < max_c:
-                        f = safe_float(sh.cell(row=r, column=c + 1).value)
-                        if f: chem_data["hardness_bhn"] = f
+                    val = str(sh.cell(row=r, column=c).value or "").strip().lower().replace(":", "")
+                    if val in elem_map:
+                        prop = elem_map[val]
+                        if prop not in chem_data:
+                            # 1. Try horizontal right cell (r, c + 1)
+                            h_val = safe_float(sh.cell(row=r, column=c + 1).value) if c < max_c else None
+                            if h_val is not None and h_val > 0:
+                                chem_data[prop] = h_val
+                            # 2. Try vertical below cell (r + 1, c)
+                            elif r < max_r:
+                                v_val = safe_float(sh.cell(row=r + 1, column=c).value)
+                                if v_val is not None and v_val > 0:
+                                    chem_data[prop] = v_val
         else:
             sh = wb.sheet_by_name(sheet_name)
-            for r in range(sh.nrows):
-                for c in range(sh.ncols):
-                    val = str(sh.cell_value(r, c)).strip().lower()
-                    if val in ["%c", "c%"] and c + 1 < sh.ncols:
-                        f = safe_float(sh.cell_value(r, c + 1))
-                        if f: chem_data["c_pct"] = f
-                    elif val in ["%si", "si%"] and c + 1 < sh.ncols:
-                        f = safe_float(sh.cell_value(r, c + 1))
-                        if f: chem_data["si_pct"] = f
-                    elif val in ["%mn", "mn%"] and c + 1 < sh.ncols:
-                        f = safe_float(sh.cell_value(r, c + 1))
-                        if f: chem_data["mn_pct"] = f
-                    elif ("hardness" in val or "bhn" in val) and c + 1 < sh.ncols:
-                        f = safe_float(sh.cell_value(r, c + 1))
-                        if f: chem_data["hardness_bhn"] = f
+            for r in range(min(sh.nrows, 60)):
+                for c in range(min(sh.ncols, 25)):
+                    val = str(sh.cell_value(r, c)).strip().lower().replace(":", "")
+                    if val in elem_map:
+                        prop = elem_map[val]
+                        if prop not in chem_data:
+                            # 1. Try horizontal right cell (r, c + 1)
+                            h_val = safe_float(sh.cell_value(r, c + 1)) if c + 1 < sh.ncols else None
+                            if h_val is not None and h_val > 0:
+                                chem_data[prop] = h_val
+                            # 2. Try vertical below cell (r + 1, c)
+                            elif r + 1 < sh.nrows:
+                                v_val = safe_float(sh.cell_value(r + 1, c))
+                                if v_val is not None and v_val > 0:
+                                    chem_data[prop] = v_val
     except Exception as e:
         log.debug(f"Subsheet parse note for {sheet_name}: {e}")
 

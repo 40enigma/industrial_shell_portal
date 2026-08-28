@@ -117,6 +117,17 @@ def calculate_machining_envelope(
             "envelope_notes": "Missing as-cast dimensions",
         }
 
+    if target_id >= target_od or cast_id >= cast_od:
+        return {
+            "is_valid_envelope": False,
+            "yield_pct": 0.0,
+            "od_cut_per_side": None,
+            "id_cut_per_side": None,
+            "face_cut_per_end": None,
+            "envelope_status": "INVALID_DIMENSIONS",
+            "envelope_notes": "Bore (ID) cannot be greater than or equal to Outer Diameter (OD)",
+        }
+
     min_required_od = target_od + 2.0 * od_allowance
     max_allowable_id = target_id - 2.0 * id_allowance
     min_required_length = target_length + 2.0 * face_allowance

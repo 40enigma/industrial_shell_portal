@@ -401,7 +401,7 @@ def download_job_bundle(
             "",
             "3. CASTING WEIGHT & FOUNDRY PARAMETERS:",
             f"   - Actual Cast Weight: {shell.actual_weight if shell else '—'} kg",
-            f"   - Job Card Weight:    {shell.job_card_weight or (shell.weight if shell else None) or '—'} kg",
+            f"   - Job Card Weight:    {(shell.job_card_weight or shell.weight) if (shell and (shell.job_card_weight or shell.weight)) else '—'} kg",
             f"   - Weight Variance:    {shell.weight_diff if shell else '—'} kg",
             f"   - Cast / Shift Date:  {shell.cast_date if shell else '—'} (Month: {shell.month if shell else '—'})",
             f"   - Molding Process:    {shell.mold_process if shell else 'Alpha Set'}",
@@ -421,10 +421,19 @@ def download_job_bundle(
             "6. LINKED ENGINEERING DOCUMENTS & QUALITY TICKETS:",
         ]
 
-        if not docs:
+        # Deduplicate docs for dossier report text
+        seen_doc_keys = set()
+        deduped_docs = []
+        for d in docs:
+            d_key = (d.id, d.doc_type, d.doc_number, d.sheet_name, d.file_path)
+            if d_key not in seen_doc_keys:
+                seen_doc_keys.add(d_key)
+                deduped_docs.append(d)
+
+        if not deduped_docs:
             summary_text.append("   (No separate workbook documents were linked to this job record)")
         else:
-            for i, d in enumerate(docs, 1):
+            for i, d in enumerate(deduped_docs, 1):
                 summary_text.append(f"   [{i}] Type: {d.doc_type} | Doc #: {d.doc_number or d.sheet_name or 'N/A'}")
                 if d.defect_judgment:
                     summary_text.append(f"       Judgment:    {d.defect_judgment}")

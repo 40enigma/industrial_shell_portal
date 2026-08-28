@@ -281,8 +281,16 @@ def parse_casting_log(filepath: Path | str, year: int = 2025) -> list[dict]:
             elif "job card wt" in v or "card wt" in v or (v.startswith("wt") and "cage" not in v): col_map["job_card_weight"] = c
             elif "calc" in v and "wt" in v: col_map["calc_weight"] = c
             elif "pattern" in v: col_map["pattern_ca"] = c
-            elif "core box" in v: col_map["core_box"] = c
+            elif "core box" in v or "core  box" in v: col_map["core_box"] = c
             elif "riser" in v: col_map["riser_pct"] = c
+            elif "simulation" in v: col_map["simulation_path"] = c
+            elif "diff" in v and ("act" in v or "job" in v): col_map["weight_diff"] = c
+            elif "shifting" in v or "acutal" in v or "cast date" in v or "actual date" in v: col_map["cast_date"] = c
+            elif "material" in v or "standard" in v: col_map["mat_standard"] = c
+            elif "technology" in v: col_map["technology"] = c
+            elif "shaft" in v and "fitting" in v: col_map["shaft_fitting"] = c
+            elif v == "core" or "core process" in v or "core sand" in v: col_map["core_process"] = c
+            elif v == "mold" or v == "mould" or "mold process" in v or "molding process" in v: col_map["mold_process"] = c
 
     # Find Finish & Casted dimensional column bounds
     finish_start, cast_start = None, None
