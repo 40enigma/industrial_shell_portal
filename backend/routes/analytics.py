@@ -206,10 +206,16 @@ def get_analytics_summary(
         shells_with_act_wt_q = shells_with_act_wt_q.filter(Shell.data_year == target_year)
     shells_with_act_wt = shells_with_act_wt_q.all()
     total_act_wt_kg = sum(s.actual_weight for s in shells_with_act_wt)
-    
-    # Calculate job allowable weight for shells that have target weights
+
+    # Total job tonnage: sum job_card_weight across ALL shells (not just those with actual weight),
+    # using only positive values to exclude placeholder/corrupt entries.
+    all_shells_q = db.query(Shell).filter(Shell.job_card_weight > 0)
+    if target_year is not None:
+        all_shells_q = all_shells_q.filter(Shell.data_year == target_year)
+    total_job_wt_kg = sum((s.job_card_weight or 0) for s in all_shells_q.all())
+
+    # For variance analytics, use the subset that has both actual and allowable weights
     shells_with_job_wt = [s for s in shells_with_act_wt if (s.job_card_weight or s.weight)]
-    total_job_wt_kg = sum((s.job_card_weight or s.weight or 0) for s in shells_with_job_wt)
     
     # Weight variance computed on shells with known actual and allowable weights
     shells_with_diff = [

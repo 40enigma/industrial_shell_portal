@@ -238,8 +238,28 @@ def parse_xls_qdar(filepath: Path, cell_map: dict, doc_subtype: str, year: int =
         return None
 
 
+def _parse_one_qdar(fpath: Path, cell_map: dict, doc_subtype: str, year: int) -> dict | None:
+    """Parse a single QDAR workbook with xlrd/openpyxl fallback."""
+    if fpath.suffix.lower() == ".xls":
+        rec = parse_xls_qdar(fpath, cell_map, doc_subtype, year=year)
+        if rec is None:
+            rec = parse_xlsx_qdar(fpath, cell_map, doc_subtype, year=year)
+    else:
+        rec = parse_xlsx_qdar(fpath, cell_map, doc_subtype, year=year)
+        if rec is None:
+            rec = parse_xls_qdar(fpath, cell_map, doc_subtype, year=year)
+    return rec
+
+
 def parse_qdar_directory(dirpath: Path, doc_subtype: str, year: int = 2025) -> list[dict]:
-    """Parse workbooks in a directory with xlrd/openpyxl fallback."""
+    """Parse workbooks in a directory with xlrd/openpyxl fallback.
+
+    Each file is parsed inside a thread with a 30-second timeout so that a
+    corrupt, password-locked, or excessively large workbook cannot stall the
+    entire pipeline.
+    """
+    import concurrent.futures
+
     records = []
     if not dirpath.exists():
         return records
@@ -250,19 +270,19 @@ def parse_qdar_directory(dirpath: Path, doc_subtype: str, year: int = 2025) -> l
 
     log.info(f"  Scanning {dirpath.name}: {len(xlsx_files)} workbooks")
 
-    for fpath in xlsx_files:
-        rec = None
-        if fpath.suffix.lower() == ".xls":
-            rec = parse_xls_qdar(fpath, cell_map, doc_subtype, year=year)
-            if rec is None:
-                rec = parse_xlsx_qdar(fpath, cell_map, doc_subtype, year=year)
-        else:
-            rec = parse_xlsx_qdar(fpath, cell_map, doc_subtype, year=year)
-            if rec is None:
-                rec = parse_xls_qdar(fpath, cell_map, doc_subtype, year=year)
+    FILE_TIMEOUT = 30  # seconds per workbook
 
-        if rec:
-            records.append(rec)
+    for fpath in xlsx_files:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_parse_one_qdar, fpath, cell_map, doc_subtype, year)
+            try:
+                rec = future.result(timeout=FILE_TIMEOUT)
+                if rec:
+                    records.append(rec)
+            except concurrent.futures.TimeoutError:
+                log.warning(f"  Skipping (timeout >{FILE_TIMEOUT}s): {fpath.name}")
+            except Exception as exc:
+                log.warning(f"  Skipping (error): {fpath.name} — {exc}")
 
     return records
 
